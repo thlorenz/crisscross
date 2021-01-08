@@ -1,7 +1,11 @@
 // TODO(thlorenz): remove later
 #![allow(dead_code)]
+#![allow(unused)]
 
-use std::f32::consts::{PI, TAU};
+use std::{
+    convert::TryInto,
+    f32::consts::{PI, TAU},
+};
 
 use crate::position::{SignedTilePosition, TilePosition, WorldCoords};
 
@@ -22,6 +26,10 @@ pub(crate) struct Intersections {
     tan: f32,
     direction_x: DirectionX,
     direction_y: DirectionY,
+    intersect_x: Option<TilePosition>,
+    intersect_y: Option<TilePosition>,
+    delta_x_axis_intersects: Option<SignedTilePosition>,
+    delta_y_axis_intersects: Option<SignedTilePosition>,
 }
 
 #[derive(Debug, PartialEq)]
@@ -35,12 +43,6 @@ enum DirectionY {
     Up,
     Down,
     Parallel,
-}
-
-#[derive(Default, Debug)]
-struct InitialIntersects {
-    x_axis: Option<(WorldCoords, TilePosition)>,
-    y_axis: Option<(WorldCoords, TilePosition)>,
 }
 
 impl Intersections {
@@ -68,7 +70,31 @@ impl Intersections {
             _ => panic!("Unhandled y direction for angle {}°", angle.to_degrees()),
         };
 
-        Self {
+        let delta_x_axis_intersects = {
+            (match direction_x {
+                DirectionX::Left => Some(-tile_size),
+                DirectionX::Right => Some(tile_size),
+                DirectionX::Parallel => None,
+            })
+            .map(|dx| {
+                let dy = tan * dx;
+                WorldCoords::new(dx, dy, tile_size).to_signed_tile_position()
+            })
+        };
+
+        let delta_y_axis_intersects = {
+            (match direction_y {
+                DirectionY::Up => Some(tile_size),
+                DirectionY::Down => Some(-tile_size),
+                DirectionY::Parallel => None,
+            })
+            .map(|dy| {
+                let dx = dy / tan;
+                WorldCoords::new(dx, dy, tile_size).to_signed_tile_position()
+            })
+        };
+
+        let mut me = Self {
             grid_size,
             tile_size,
             tp,
@@ -77,13 +103,15 @@ impl Intersections {
             tan,
             direction_x,
             direction_y,
-        }
-    }
+            intersect_x: None,
+            intersect_y: None,
+            delta_x_axis_intersects,
+            delta_y_axis_intersects,
+        };
+        me.intersect_x = me.initial_x_intersect().map(|(_, tp)| tp);
+        me.intersect_y = me.initial_y_intersect().map(|(_, tp)| tp);
 
-    fn initial_intersects(&self) -> InitialIntersects {
-        let x_axis = self.initial_x_intersect();
-        let y_axis = self.initial_y_intersect();
-        InitialIntersects { x_axis, y_axis }
+        me
     }
 
     fn initial_x_intersect(&self) -> Option<(WorldCoords, TilePosition)> {
@@ -154,11 +182,9 @@ impl Intersections {
     }
 
     fn validated_tile_position(&self, stp: SignedTilePosition) -> Option<TilePosition> {
-        let tp: Option<TilePosition> = stp.into();
-        if let Some(tp) = tp {
-            self.bounded(tp)
-        } else {
-            None
+        match stp.try_into() {
+            Ok(tp) => self.bounded(tp),
+            Err(_) => None,
         }
     }
 
@@ -213,7 +239,7 @@ mod tests {
 
     #[test]
     fn starting_intersections() {
-        let verify: Vec<(f32, Option<TilePosition>, Option<TilePosition>)> = vec![
+        let test_cases: Vec<(f32, Option<TilePosition>, Option<TilePosition>)> = vec![
             (0.0, Some(((2, 0.000), (1, 0.500)).into()), None),
             (
                 30.0,
@@ -264,13 +290,77 @@ mod tests {
                 Some(((2, 0.366), (0, 1.000)).into()),
             ),
         ];
-        for (angle, x, y) in verify {
-            let intersections = init_centered_3x3(angle);
-            let InitialIntersects { x_axis, y_axis } = intersections.initial_intersects();
-            let x_axis = x_axis.map(|(_, tp)| tp);
-            let y_axis = y_axis.map(|(_, tp)| tp);
-            assert_eq!(x_axis, x);
-            assert_eq!(y_axis, y);
+        for (angle, x, y) in test_cases {
+            let Intersections {
+                intersect_x,
+                intersect_y,
+                ..
+            } = init_centered_3x3(angle);
+            assert_eq!(intersect_x, x);
+            assert_eq!(intersect_y, y);
+        }
+    }
+    #[test]
+    fn intersection_deltas() {
+        let test_cases: Vec<(f32, Option<SignedTilePosition>, Option<SignedTilePosition>)> = vec![
+            (0.0, Some(((1, 0.00), (0, 0.00)).into()), None),
+            (
+                30.0,
+                Some(((1, 0.00), (0, 0.577)).into()),
+                Some(((1, 0.732), (1, 0.00)).into()),
+            ),
+            (
+                45.0,
+                Some(((1, 0.00), (1, 0.000)).into()),
+                Some(((1, 0.00), (1, 0.000)).into()),
+            ),
+            (
+                60.0,
+                Some(((1, 0.00), (1, 0.732)).into()),
+                Some(((0, 0.577), (1, 0.00)).into()),
+            ),
+            (90.0, None, Some(((0, 0.00), (1, 0.00)).into())),
+            (
+                135.0,
+                Some(((-1, 0.00), (1, 0.000)).into()),
+                Some(((-1, 0.00), (1, 0.000)).into()),
+            ),
+            (
+                150.0,
+                Some(((-1, 0.00), (0, 0.577)).into()),
+                Some(((-1, -0.732), (1, 0.000)).into()),
+            ),
+            (180.0, Some(((-1, 0.00), (0, 0.00)).into()), None),
+            (
+                225.0,
+                Some(((-1, 0.00), (-1, 0.000)).into()),
+                Some(((-1, 0.00), (-1, 0.000)).into()),
+            ),
+            (
+                210.0,
+                Some(((-1, 0.00), (0, -0.577)).into()),
+                Some(((-1, -0.732), (-1, 0.000)).into()),
+            ),
+            (270.0, None, Some(((0, 0.00), (-1, 0.00)).into())),
+            (
+                315.0,
+                Some(((1, 0.00), (-1, 0.000)).into()),
+                Some(((1, 0.00), (-1, 0.000)).into()),
+            ),
+            (
+                330.0,
+                Some(((1, 0.00), (0, -0.577)).into()),
+                Some(((1, 0.732), (-1, 0.000)).into()),
+            ),
+        ];
+        for (angle, dx, dy) in test_cases {
+            let Intersections {
+                delta_x_axis_intersects,
+                delta_y_axis_intersects,
+                ..
+            } = init_centered_3x3(angle);
+            assert_eq!(delta_x_axis_intersects, dx);
+            assert_eq!(delta_y_axis_intersects, dy);
         }
     }
 }
