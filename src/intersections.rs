@@ -1,36 +1,17 @@
-// TODO(thlorenz): remove later
-#![allow(dead_code)]
-#![allow(unused)]
-
 use std::{
     convert::TryInto,
     f32::consts::{PI, TAU},
 };
 
-use crate::position::{SignedTilePosition, TilePosition, WorldCoords};
+use crate::{
+    grid::Grid,
+    position::{SignedTilePosition, TilePosition, WorldCoords},
+};
 
 const DEG_90: f32 = PI * 0.5;
 const DEG_270: f32 = PI * 1.5;
 
-type GridSize = (u32, u32);
-
-/// Assumes origin (0, 0) is at bottom left.
-/// Assumes relative tile position are based on (0.0, 0.0) being located at the bottom left of each
-/// tile.
-pub(crate) struct Intersections {
-    grid_size: GridSize,
-    tile_size: f32,
-    tp: TilePosition,
-    wc: WorldCoords,
-    angle: f32,
-    tan: f32,
-    direction_x: DirectionX,
-    direction_y: DirectionY,
-    intersect_x: Option<TilePosition>,
-    intersect_y: Option<TilePosition>,
-    delta_x_axis_intersects: Option<SignedTilePosition>,
-    delta_y_axis_intersects: Option<SignedTilePosition>,
-}
+pub(crate) type GridSize = (u32, u32);
 
 #[derive(Debug, PartialEq)]
 enum DirectionX {
@@ -45,9 +26,29 @@ enum DirectionY {
     Parallel,
 }
 
+/// Assumes origin (0, 0) is at bottom left.
+/// Assumes relative tile position are based on (0.0, 0.0) being located at the bottom left of each
+/// tile.
+pub struct Intersections {
+    wc: WorldCoords,
+    angle: f32,
+    tan: f32,
+    direction_x: DirectionX,
+    direction_y: DirectionY,
+    grid: Grid,
+    tp: TilePosition,
+    intersect_x: Option<TilePosition>,
+    intersect_y: Option<TilePosition>,
+    delta_x_axis_intersect: Option<SignedTilePosition>,
+    delta_y_axis_intersect: Option<SignedTilePosition>,
+}
+
+//
+// Constructor API
+//
 impl Intersections {
-    fn new(grid_size: GridSize, tile_size: f32, tp: TilePosition, angle: f32) -> Self {
-        let wc = WorldCoords::from_tile_position(&tp, tile_size);
+    pub(crate) fn new(grid: Grid, tp: TilePosition, angle: f32) -> Self {
+        let wc = WorldCoords::from_tile_position(&tp, grid.tile_size);
 
         // Clamp angle to 0.0..TAU
         let angle = match angle {
@@ -72,31 +73,30 @@ impl Intersections {
 
         let delta_x_axis_intersects = {
             (match direction_x {
-                DirectionX::Left => Some(-tile_size),
-                DirectionX::Right => Some(tile_size),
+                DirectionX::Left => Some(-grid.tile_size),
+                DirectionX::Right => Some(grid.tile_size),
                 DirectionX::Parallel => None,
             })
             .map(|dx| {
                 let dy = tan * dx;
-                WorldCoords::new(dx, dy, tile_size).to_signed_tile_position()
+                WorldCoords::new(dx, dy, grid.tile_size).to_signed_tile_position()
             })
         };
 
         let delta_y_axis_intersects = {
             (match direction_y {
-                DirectionY::Up => Some(tile_size),
-                DirectionY::Down => Some(-tile_size),
+                DirectionY::Up => Some(grid.tile_size),
+                DirectionY::Down => Some(-grid.tile_size),
                 DirectionY::Parallel => None,
             })
             .map(|dy| {
                 let dx = dy / tan;
-                WorldCoords::new(dx, dy, tile_size).to_signed_tile_position()
+                WorldCoords::new(dx, dy, grid.tile_size).to_signed_tile_position()
             })
         };
 
         let mut me = Self {
-            grid_size,
-            tile_size,
+            grid,
             tp,
             wc,
             angle,
@@ -105,25 +105,30 @@ impl Intersections {
             direction_y,
             intersect_x: None,
             intersect_y: None,
-            delta_x_axis_intersects,
-            delta_y_axis_intersects,
+            delta_x_axis_intersect: delta_x_axis_intersects,
+            delta_y_axis_intersect: delta_y_axis_intersects,
         };
         me.intersect_x = me.initial_x_intersect().map(|(_, tp)| tp);
         me.intersect_y = me.initial_y_intersect().map(|(_, tp)| tp);
 
         me
     }
+}
 
+//
+// Inital Intersects
+//
+impl Intersections {
     fn initial_x_intersect(&self) -> Option<(WorldCoords, TilePosition)> {
         if self.direction_x == DirectionX::Left && self.tp.x == 0
-            || self.direction_x == DirectionX::Right && self.tp.x + 1 == self.grid_size.0
+            || self.direction_x == DirectionX::Right && self.tp.x + 1 == self.grid.cols
         {
             return None;
         }
 
         let dx = match self.direction_x {
             DirectionX::Left => Some(-self.tp.rel_x),
-            DirectionX::Right => Some(self.tile_size - self.tp.rel_x),
+            DirectionX::Right => Some(self.grid.tile_size - self.tp.rel_x),
             DirectionX::Parallel => None,
         };
 
@@ -144,13 +149,13 @@ impl Intersections {
 
     fn initial_y_intersect(&self) -> Option<(WorldCoords, TilePosition)> {
         if self.direction_y == DirectionY::Down && self.tp.y == 0
-            || self.direction_y == DirectionY::Up && self.tp.y + 1 == self.grid_size.1
+            || self.direction_y == DirectionY::Up && self.tp.y + 1 == self.grid.rows
         {
             return None;
         }
 
         let dy = match self.direction_y {
-            DirectionY::Up => Some(self.tile_size - self.tp.rel_y),
+            DirectionY::Up => Some(self.grid.tile_size - self.tp.rel_y),
             DirectionY::Down => Some(-self.tp.rel_y),
             DirectionY::Parallel => None,
         };
@@ -169,15 +174,20 @@ impl Intersections {
             None
         }
     }
+}
 
+//
+// Validators/Normalizers
+//
+impl Intersections {
     fn normalize(&self, tp: &mut TilePosition) {
         if self.direction_x == DirectionX::Left && tp.rel_x == 0.0 {
             tp.x -= 1;
-            tp.rel_x += self.tile_size;
+            tp.rel_x += self.grid.tile_size;
         }
         if self.direction_y == DirectionY::Down && tp.rel_y == 0.0 {
             tp.y -= 1;
-            tp.rel_y += self.tile_size;
+            tp.rel_y += self.grid.tile_size;
         }
     }
 
@@ -189,10 +199,72 @@ impl Intersections {
     }
 
     fn bounded(&self, tp: TilePosition) -> Option<TilePosition> {
-        if tp.x < self.grid_size.0 && tp.y < self.grid_size.1 {
+        if tp.x < self.grid.cols && tp.y < self.grid.rows {
             Some(tp)
         } else {
             None
+        }
+    }
+}
+
+//
+// Iteration
+//
+enum Axis {
+    X,
+    Y,
+}
+
+impl Intersections {
+    pub(crate) fn next_intersect(&mut self) -> Option<TilePosition> {
+        let closest_axis = match (&self.intersect_x, &self.intersect_y) {
+            (None, None) => None,
+            (None, Some(_)) => Some(Axis::Y),
+            (Some(_), None) => Some(Axis::X),
+            (Some(tpx), Some(tpy)) => {
+                let dx = self.tp.distance(tpx, self.grid.tile_size);
+                let dy = self.tp.distance(tpy, self.grid.tile_size);
+                if dx < dy {
+                    Some(Axis::X)
+                } else {
+                    Some(Axis::Y)
+                }
+            }
+        };
+        match closest_axis {
+            Some(Axis::X) => {
+                let next = self.intersect_x.clone();
+                self.update_intersect_x();
+                next
+            }
+            Some(Axis::Y) => {
+                let next = self.intersect_y.clone();
+                self.update_intersect_y();
+                next
+            }
+            None => None,
+        }
+    }
+
+    fn update_intersect_x(&mut self) {
+        self.intersect_x = self.next_intersect_for(&self.intersect_x, &self.delta_x_axis_intersect);
+    }
+
+    fn update_intersect_y(&mut self) {
+        self.intersect_y = self.next_intersect_for(&self.intersect_y, &self.delta_y_axis_intersect);
+    }
+
+    fn next_intersect_for(
+        &self,
+        intersect: &Option<TilePosition>,
+        delta: &Option<SignedTilePosition>,
+    ) -> Option<TilePosition> {
+        match (intersect, delta) {
+            (None, _) | (_, None) => None,
+            (Some(intersect), Some(delta)) => {
+                let stp = intersect + delta;
+                self.validated_tile_position(stp)
+            }
         }
     }
 }
@@ -202,11 +274,11 @@ mod tests {
     use super::*;
 
     fn init_centered_3x3(angle_deg: f32) -> Intersections {
-        let grid_size = (3, 3);
-        let tiles_size = 1.0;
+        let tile_size = 1.0;
+        let grid = Grid::new(3, 3, tile_size);
         let tp = TilePosition::new(1, 1, 0.5, 0.5);
 
-        Intersections::new(grid_size, tiles_size, tp, angle_deg.to_radians())
+        Intersections::new(grid, tp, angle_deg.to_radians())
     }
 
     #[test]
@@ -355,8 +427,8 @@ mod tests {
         ];
         for (angle, dx, dy) in test_cases {
             let Intersections {
-                delta_x_axis_intersects,
-                delta_y_axis_intersects,
+                delta_x_axis_intersect: delta_x_axis_intersects,
+                delta_y_axis_intersect: delta_y_axis_intersects,
                 ..
             } = init_centered_3x3(angle);
             assert_eq!(delta_x_axis_intersects, dx);

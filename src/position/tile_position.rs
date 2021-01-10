@@ -32,6 +32,18 @@ impl TilePosition {
             rel_y: round(rel_y, TILE_POSITION_PRECISION),
         }
     }
+
+    pub fn distance<'a, T>(&self, other: T, tile_size: f32) -> f32
+    where
+        T: Into<&'a TilePosition>,
+    {
+        self.to_world_coords(tile_size)
+            .distance(&other.into().to_world_coords(tile_size))
+    }
+
+    fn to_world_coords(&self, tile_size: f32) -> WorldCoords {
+        WorldCoords::from_tile_position(&self, tile_size)
+    }
 }
 
 impl SignedTilePosition {
@@ -174,5 +186,12 @@ mod tests {
                   - TilePosition::new(1,  4,  1.0, 0.1),
               SignedTilePosition::new(0, -3, -0.5, 0.1)
         );
+    }
+
+    #[test]
+    fn distance() {
+        let tp1: TilePosition = ((1, 0.0), (3, 0.3)).into();
+        let tp2: TilePosition = ((4, 0.1), (8, 0.8)).into();
+        assert_eq!(round(tp1.distance(&tp2, 1.0), 3), 6.313);
     }
 }

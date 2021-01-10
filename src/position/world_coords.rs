@@ -30,6 +30,13 @@ impl WorldCoords {
             tile_size: self.tile_size,
         }
     }
+
+    pub(crate) fn distance(&self, other: &WorldCoords) -> f32 {
+        let dx = self.x - other.x;
+        let dy = self.y - other.y;
+        (dx.powi(2) + dy.powi(2)).sqrt()
+    }
+
     pub(crate) fn from_tile_position(tp: &TilePosition, tile_size: f32) -> Self {
         let x = (tile_size * tp.x as f32) + tp.rel_x;
         let y = (tile_size * tp.y as f32) + tp.rel_y;
@@ -59,5 +66,21 @@ mod tests {
         let wc = WorldCoords::new(-1.732, 1.0, 1.0);
         let stp = wc.to_signed_tile_position();
         assert_eq!(stp, ((-1, -0.732), (1, 0.0)).into());
+    }
+
+    #[test]
+    fn distance() {
+        let tile_size = 1.0;
+        let test_cases: Vec<((f32, f32), (f32, f32), f32)> = vec![
+            ((0.0, 0.0), (1.0, 0.0), 1.000),
+            ((0.0, 0.2), (4.0, 0.8), 4.045),
+            ((1.0, 0.2), (-4.0, 0.8), 5.036),
+            ((-1.0, 0.2), (4.0, 0.8), 5.036),
+        ];
+        for ((x1, y1), (x2, y2), distance) in test_cases {
+            let wc1 = WorldCoords::new(x1, y1, tile_size);
+            let wc2 = WorldCoords::new(x2, y2, tile_size);
+            assert_eq!(round(wc1.distance(&wc2), 3), distance);
+        }
     }
 }
