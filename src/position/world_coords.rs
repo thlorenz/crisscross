@@ -43,6 +43,12 @@ impl WorldCoords {
         WorldCoords::new(x, y, tile_size)
     }
 
+    pub(crate) fn from_signed_tile_position(tp: &SignedTilePosition, tile_size: f32) -> Self {
+        let x = (tile_size * tp.x as f32) + tp.rel_x;
+        let y = (tile_size * tp.y as f32) + tp.rel_y;
+        WorldCoords::new(x, y, tile_size)
+    }
+
     #[allow(dead_code)]
     pub(crate) fn to_tile_position(&self) -> Result<TilePosition, String> {
         self.to_signed_tile_position().try_into()
@@ -66,6 +72,10 @@ mod tests {
         let wc = WorldCoords::new(-1.732, 1.0, 1.0);
         let stp = wc.to_signed_tile_position();
         assert_eq!(stp, ((-1, -0.732), (1, 0.0)).into());
+
+        let wc = WorldCoords::new(5.196, 3.0, 1.0);
+        let stp = wc.to_signed_tile_position();
+        assert_eq!(stp, ((5, 0.196), (3, 0.0)).into());
     }
 
     #[test]

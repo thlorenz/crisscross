@@ -108,8 +108,8 @@ impl Intersections {
             delta_x_axis_intersect: delta_x_axis_intersects,
             delta_y_axis_intersect: delta_y_axis_intersects,
         };
-        me.intersect_x = me.initial_x_intersect().map(|(_, tp)| tp);
-        me.intersect_y = me.initial_y_intersect().map(|(_, tp)| tp);
+        me.intersect_x = me.initial_x_intersect();
+        me.intersect_y = me.initial_y_intersect();
 
         me
     }
@@ -119,7 +119,7 @@ impl Intersections {
 // Inital Intersects
 //
 impl Intersections {
-    fn initial_x_intersect(&self) -> Option<(WorldCoords, TilePosition)> {
+    fn initial_x_intersect(&self) -> Option<TilePosition> {
         if self.direction_x == DirectionX::Left && self.tp.x == 0
             || self.direction_x == DirectionX::Right && self.tp.x + 1 == self.grid.cols
         {
@@ -138,7 +138,7 @@ impl Intersections {
             let tp = self.validated_tile_position(wc.to_signed_tile_position());
             if let Some(mut tp) = tp {
                 self.normalize(&mut tp);
-                Some((wc, tp))
+                Some(tp)
             } else {
                 None
             }
@@ -147,7 +147,7 @@ impl Intersections {
         }
     }
 
-    fn initial_y_intersect(&self) -> Option<(WorldCoords, TilePosition)> {
+    fn initial_y_intersect(&self) -> Option<TilePosition> {
         if self.direction_y == DirectionY::Down && self.tp.y == 0
             || self.direction_y == DirectionY::Up && self.tp.y + 1 == self.grid.rows
         {
@@ -166,7 +166,7 @@ impl Intersections {
             let tp = self.validated_tile_position(wc.to_signed_tile_position());
             if let Some(mut tp) = tp {
                 self.normalize(&mut tp);
-                Some((wc, tp))
+                Some(tp)
             } else {
                 None
             }
@@ -263,7 +263,9 @@ impl Intersections {
             (None, _) | (_, None) => None,
             (Some(intersect), Some(delta)) => {
                 let stp = intersect + delta;
-                self.validated_tile_position(stp)
+                // convert back and forth to world coords to ensure that rel_x,rel_y <= tile_size
+                let wc = WorldCoords::from_signed_tile_position(&stp, self.grid.tile_size);
+                self.validated_tile_position(wc.to_signed_tile_position())
             }
         }
     }
