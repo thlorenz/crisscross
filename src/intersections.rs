@@ -135,13 +135,7 @@ impl Intersections {
         if let Some(dx) = dx {
             let dy = dx * self.tan;
             let wc = self.wc.translated(dx, dy);
-            let tp = self.validated_tile_position(wc.to_signed_tile_position());
-            if let Some(mut tp) = tp {
-                self.normalize(&mut tp);
-                Some(tp)
-            } else {
-                None
-            }
+            self.normalized_valid_tile_position(wc)
         } else {
             None
         }
@@ -163,13 +157,7 @@ impl Intersections {
         if let Some(dy) = dy {
             let dx = dy / self.tan;
             let wc = self.wc.translated(dx, dy);
-            let tp = self.validated_tile_position(wc.to_signed_tile_position());
-            if let Some(mut tp) = tp {
-                self.normalize(&mut tp);
-                Some(tp)
-            } else {
-                None
-            }
+            self.normalized_valid_tile_position(wc)
         } else {
             None
         }
@@ -180,7 +168,13 @@ impl Intersections {
 // Validators/Normalizers
 //
 impl Intersections {
-    fn normalize(&self, tp: &mut TilePosition) {
+    fn normalized_valid_tile_position(&self, wc: WorldCoords) -> Option<TilePosition> {
+        let mut stp = wc.to_signed_tile_position();
+        self.normalize(&mut stp);
+        self.validated_tile_position(stp)
+    }
+
+    fn normalize(&self, tp: &mut SignedTilePosition) {
         if self.direction_x == DirectionX::Left && tp.rel_x == 0.0 {
             tp.x -= 1;
             tp.rel_x += self.grid.tile_size;
@@ -265,7 +259,7 @@ impl Intersections {
                 let stp = intersect + delta;
                 // convert back and forth to world coords to ensure that rel_x,rel_y <= tile_size
                 let wc = WorldCoords::from_signed_tile_position(&stp, self.grid.tile_size);
-                self.validated_tile_position(wc.to_signed_tile_position())
+                self.normalized_valid_tile_position(wc)
             }
         }
     }
@@ -310,7 +304,6 @@ mod tests {
             assert_eq!((dir_x, dir_y), (direction_x, direction_y));
         }
     }
-
     #[test]
     fn starting_intersections() {
         let test_cases: Vec<(f32, Option<TilePosition>, Option<TilePosition>)> = vec![
