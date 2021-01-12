@@ -24,29 +24,31 @@ impl WorldCoords {
     }
 
     pub fn translated(&self, dx: f32, dy: f32) -> Self {
-        WorldCoords {
+        Self {
             x: self.x + dx,
             y: self.y + dy,
             tile_size: self.tile_size,
         }
     }
 
-    pub(crate) fn distance(&self, other: &WorldCoords) -> f32 {
+    pub(crate) fn distance(&self, other: &Self) -> f32 {
         let dx = self.x - other.x;
         let dy = self.y - other.y;
-        (dx.powi(2) + dy.powi(2)).sqrt()
+        dx.hypot(dy)
     }
 
+    #[allow(clippy::cast_precision_loss)]
     pub(crate) fn from_tile_position(tp: &TilePosition, tile_size: f32) -> Self {
-        let x = (tile_size * tp.x as f32) + tp.rel_x;
-        let y = (tile_size * tp.y as f32) + tp.rel_y;
-        WorldCoords::new(x, y, tile_size)
+        let x = tile_size.mul_add(tp.x as f32, tp.rel_x);
+        let y = tile_size.mul_add(tp.y as f32, tp.rel_y);
+        Self::new(x, y, tile_size)
     }
 
+    #[allow(clippy::cast_precision_loss)]
     pub(crate) fn from_signed_tile_position(tp: &SignedTilePosition, tile_size: f32) -> Self {
-        let x = (tile_size * tp.x as f32) + tp.rel_x;
-        let y = (tile_size * tp.y as f32) + tp.rel_y;
-        WorldCoords::new(x, y, tile_size)
+        let x = tile_size.mul_add(tp.x as f32, tp.rel_x);
+        let y = tile_size.mul_add(tp.y as f32, tp.rel_y);
+        Self::new(x, y, tile_size)
     }
 
     #[allow(dead_code)]
@@ -54,6 +56,7 @@ impl WorldCoords {
         self.to_signed_tile_position().try_into()
     }
 
+    #[allow(clippy::cast_possible_truncation)]
     pub(crate) fn to_signed_tile_position(&self) -> SignedTilePosition {
         let x = (self.x / self.tile_size).trunc() as i64;
         let y = (self.y / self.tile_size).trunc() as i64;

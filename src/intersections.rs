@@ -1,6 +1,9 @@
 use std::{
     convert::TryInto,
-    f32::consts::{PI, TAU},
+    f32::{
+        consts::{PI, TAU},
+        EPSILON,
+    },
 };
 
 use crate::{
@@ -10,8 +13,6 @@ use crate::{
 
 const DEG_90: f32 = PI * 0.5;
 const DEG_270: f32 = PI * 1.5;
-
-pub(crate) type GridSize = (u32, u32);
 
 #[derive(Debug, PartialEq)]
 enum DirectionX {
@@ -31,7 +32,6 @@ enum DirectionY {
 /// tile.
 pub struct Intersections {
     wc: WorldCoords,
-    angle: f32,
     tan: f32,
     direction_x: DirectionX,
     direction_y: DirectionY,
@@ -59,16 +59,16 @@ impl Intersections {
         let tan = angle.tan();
 
         let direction_x = match angle {
-            x if x == DEG_90 || x == DEG_270 => DirectionX::Parallel,
-            x if x < DEG_90 || x > DEG_270 => DirectionX::Right,
-            x if x > DEG_90 && x < DEG_270 => DirectionX::Left,
-            _ => panic!("Unhandled x direction for angle {}°", angle.to_degrees()),
+            x if (x - DEG_90).abs() < EPSILON || (x - DEG_270).abs() < EPSILON => {
+                DirectionX::Parallel
+            }
+            x if !(DEG_90..=DEG_270).contains(&x) => DirectionX::Right,
+            _ => DirectionX::Left,
         };
         let direction_y = match angle {
-            x if x == 0.0 || x == PI => DirectionY::Parallel,
+            x if x.abs() < EPSILON || (x - PI).abs() < EPSILON => DirectionY::Parallel,
             x if x < PI => DirectionY::Up,
-            x if x > PI => DirectionY::Down,
-            _ => panic!("Unhandled y direction for angle {}°", angle.to_degrees()),
+            _ => DirectionY::Down,
         };
 
         let delta_x_axis_intersects = {
@@ -99,7 +99,6 @@ impl Intersections {
             grid,
             tp,
             wc,
-            angle,
             tan,
             direction_x,
             direction_y,
@@ -119,6 +118,7 @@ impl Intersections {
 // Inital Intersects
 //
 impl Intersections {
+    #[allow(clippy::integer_arithmetic)]
     fn initial_x_intersect(&self) -> Option<TilePosition> {
         if self.direction_x == DirectionX::Left && self.tp.x == 0
             || self.direction_x == DirectionX::Right && self.tp.x + 1 == self.grid.cols
@@ -130,17 +130,14 @@ impl Intersections {
             DirectionX::Left => Some(-self.tp.rel_x),
             DirectionX::Right => Some(self.grid.tile_size - self.tp.rel_x),
             DirectionX::Parallel => None,
-        };
+        }?;
 
-        if let Some(dx) = dx {
-            let dy = dx * self.tan;
-            let wc = self.wc.translated(dx, dy);
-            self.normalized_valid_tile_position(wc)
-        } else {
-            None
-        }
+        let dy = dx * self.tan;
+        let wc = self.wc.translated(dx, dy);
+        self.normalized_valid_tile_position(&wc)
     }
 
+    #[allow(clippy::integer_arithmetic)]
     fn initial_y_intersect(&self) -> Option<TilePosition> {
         if self.direction_y == DirectionY::Down && self.tp.y == 0
             || self.direction_y == DirectionY::Up && self.tp.y + 1 == self.grid.rows
@@ -152,15 +149,11 @@ impl Intersections {
             DirectionY::Up => Some(self.grid.tile_size - self.tp.rel_y),
             DirectionY::Down => Some(-self.tp.rel_y),
             DirectionY::Parallel => None,
-        };
+        }?;
 
-        if let Some(dy) = dy {
-            let dx = dy / self.tan;
-            let wc = self.wc.translated(dx, dy);
-            self.normalized_valid_tile_position(wc)
-        } else {
-            None
-        }
+        let dx = dy / self.tan;
+        let wc = self.wc.translated(dx, dy);
+        self.normalized_valid_tile_position(&wc)
     }
 }
 
@@ -168,12 +161,13 @@ impl Intersections {
 // Validators/Normalizers
 //
 impl Intersections {
-    fn normalized_valid_tile_position(&self, wc: WorldCoords) -> Option<TilePosition> {
+    fn normalized_valid_tile_position(&self, wc: &WorldCoords) -> Option<TilePosition> {
         let mut stp = wc.to_signed_tile_position();
         self.normalize(&mut stp);
         self.validated_tile_position(stp)
     }
 
+    #[allow(clippy::integer_arithmetic)]
     fn normalize(&self, tp: &mut SignedTilePosition) {
         if self.direction_x == DirectionX::Left && tp.rel_x == 0.0 {
             tp.x -= 1;
@@ -192,7 +186,7 @@ impl Intersections {
         }
     }
 
-    fn bounded(&self, tp: TilePosition) -> Option<TilePosition> {
+    const fn bounded(&self, tp: TilePosition) -> Option<TilePosition> {
         if tp.x < self.grid.cols && tp.y < self.grid.rows {
             Some(tp)
         } else {
@@ -215,7 +209,7 @@ impl Intersections {
             (None, None) => None,
             (None, Some(_)) => Some(Axis::Y),
             (Some(_), None) => Some(Axis::X),
-            (Some(tpx), Some(tpy)) => {
+            (Some(ref tpx), Some(ref tpy)) => {
                 let dx = self.tp.distance(tpx, self.grid.tile_size);
                 let dy = self.tp.distance(tpy, self.grid.tile_size);
                 if dx < dy {
@@ -255,11 +249,11 @@ impl Intersections {
     ) -> Option<TilePosition> {
         match (intersect, delta) {
             (None, _) | (_, None) => None,
-            (Some(intersect), Some(delta)) => {
+            (Some(ref intersect), Some(ref delta)) => {
                 let stp = intersect + delta;
                 // convert back and forth to world coords to ensure that rel_x,rel_y <= tile_size
                 let wc = WorldCoords::from_signed_tile_position(&stp, self.grid.tile_size);
-                self.normalized_valid_tile_position(wc)
+                self.normalized_valid_tile_position(&wc)
             }
         }
     }

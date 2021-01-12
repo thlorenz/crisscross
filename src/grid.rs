@@ -6,7 +6,8 @@ pub struct Grid {
 }
 
 impl Grid {
-    pub fn new(cols: u32, rows: u32, tile_size: f32) -> Self {
+    #[must_use]
+    pub const fn new(cols: u32, rows: u32, tile_size: f32) -> Self {
         Self {
             cols,
             rows,

@@ -24,6 +24,7 @@ pub struct SignedTilePosition {
 }
 
 impl TilePosition {
+    #[must_use]
     pub fn new(x: u32, y: u32, rel_x: f32, rel_y: f32) -> Self {
         Self {
             x,
@@ -35,14 +36,14 @@ impl TilePosition {
 
     pub fn distance<'a, T>(&self, other: T, tile_size: f32) -> f32
     where
-        T: Into<&'a TilePosition>,
+        T: Into<&'a Self>,
     {
         self.to_world_coords(tile_size)
             .distance(&other.into().to_world_coords(tile_size))
     }
 
     fn to_world_coords(&self, tile_size: f32) -> WorldCoords {
-        WorldCoords::from_tile_position(&self, tile_size)
+        WorldCoords::from_tile_position(self, tile_size)
     }
 }
 
@@ -58,10 +59,12 @@ impl SignedTilePosition {
 
     pub fn normalized(self, tile_size: f32) -> Self {
         let dts = 2.0 * tile_size;
-        let SignedTilePosition { x, y, rel_x, rel_y } = self;
+        let Self { x, y, rel_x, rel_y } = self;
         debug_assert!(-dts < rel_x && rel_x < dts);
         debug_assert!(-dts < rel_y && rel_y < dts);
 
+        #[allow(clippy::clippy::cast_precision_loss)]
+        // pub const MAX: f32 = 3.40282347e+38_f32
         WorldCoords::new(x as f32 + rel_x, y as f32 + rel_y, tile_size).to_signed_tile_position()
     }
 }
@@ -69,8 +72,8 @@ impl SignedTilePosition {
 impl From<TilePosition> for SignedTilePosition {
     fn from(tp: TilePosition) -> Self {
         Self {
-            x: tp.x as i64,
-            y: tp.y as i64,
+            x: i64::from(tp.x),
+            y: i64::from(tp.y),
             rel_x: tp.rel_x,
             rel_y: tp.rel_y,
         }
@@ -81,7 +84,11 @@ impl TryFrom<SignedTilePosition> for TilePosition {
     type Error = String;
     fn try_from(tp: SignedTilePosition) -> Result<Self, Self::Error> {
         if tp.x >= 0 && tp.y >= 0 {
-            Ok(TilePosition {
+            #[allow(
+                clippy::clippy::cast_sign_loss,
+                clippy::clippy::cast_possible_truncation
+            )]
+            Ok(Self {
                 x: tp.x as u32,
                 y: tp.y as u32,
                 rel_x: tp.rel_x,
@@ -118,9 +125,10 @@ impl PartialEq for TilePosition {
 impl ops::Sub<&TilePosition> for &TilePosition {
     type Output = SignedTilePosition;
 
+    #[allow(clippy::integer_arithmetic)]
     fn sub(self, rhs: &TilePosition) -> Self::Output {
-        let dx = self.x as i64 - rhs.x as i64;
-        let dy = self.y as i64 - rhs.y as i64;
+        let dx = i64::from(self.x) - i64::from(rhs.x);
+        let dy = i64::from(self.y) - i64::from(rhs.y);
         let rel_x = self.rel_x - rhs.rel_x;
         let rel_y = self.rel_y - rhs.rel_y;
         SignedTilePosition::new(dx, dy, rel_x, rel_y)
@@ -129,7 +137,7 @@ impl ops::Sub<&TilePosition> for &TilePosition {
 
 impl ops::Sub<TilePosition> for TilePosition {
     type Output = SignedTilePosition;
-    fn sub(self, rhs: TilePosition) -> Self::Output {
+    fn sub(self, rhs: Self) -> Self::Output {
         &self - &rhs
     }
 }
@@ -137,9 +145,10 @@ impl ops::Sub<TilePosition> for TilePosition {
 impl ops::Add<&SignedTilePosition> for &TilePosition {
     type Output = SignedTilePosition;
 
+    #[allow(clippy::integer_arithmetic)]
     fn add(self, rhs: &SignedTilePosition) -> Self::Output {
-        let dx = self.x as i64 + rhs.x;
-        let dy = self.y as i64 + rhs.y;
+        let dx = i64::from(self.x) + rhs.x;
+        let dy = i64::from(self.y) + rhs.y;
         let rel_x = self.rel_x + rhs.rel_x;
         let rel_y = self.rel_y + rhs.rel_y;
         SignedTilePosition::new(dx, dy, rel_x, rel_y)
@@ -156,14 +165,13 @@ impl ops::Add<SignedTilePosition> for TilePosition {
 #[cfg(test)]
 impl From<((i64, f32), (i64, f32))> for SignedTilePosition {
     fn from(((x, rel_x), (y, rel_y)): ((i64, f32), (i64, f32))) -> Self {
-        SignedTilePosition::new(x, y, rel_x, rel_y)
+        Self::new(x, y, rel_x, rel_y)
     }
 }
 
-#[cfg(test)]
 impl From<((u32, f32), (u32, f32))> for TilePosition {
     fn from(((x, rel_x), (y, rel_y)): ((u32, f32), (u32, f32))) -> Self {
-        TilePosition::new(x, y, rel_x, rel_y)
+        Self::new(x, y, rel_x, rel_y)
     }
 }
 
