@@ -1,6 +1,6 @@
 mod common;
 use common::round_tp;
-use raycast::{Grid, TileRaycaster};
+use crisscross::{Grid, TileRaycaster};
 
 #[test]
 fn grid_4x4_30deg() {

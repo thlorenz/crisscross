@@ -1,4 +1,4 @@
-use raycast::TilePosition;
+use crisscross::TilePosition;
 
 fn round(n: f32, decimals: usize) -> f32 {
     let factor = 10_u64.pow(decimals as u32) as f64;
