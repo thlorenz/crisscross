@@ -63,4 +63,4 @@ mod util;
 
 pub use grid::Grid;
 pub use position::TilePosition;
-pub use tile_raycaster::TileRaycaster;
+pub use tile_raycaster::{Crossing, TileRaycaster};

@@ -3,6 +3,12 @@ use crate::{
     position::TilePosition,
 };
 
+#[derive(Debug, Default, PartialEq)]
+pub struct Crossing {
+    pub valid: Option<TilePosition>,
+    pub invalid: Option<TilePosition>,
+}
+
 pub struct TileRaycaster {
     grid: Grid,
 }
@@ -14,7 +20,7 @@ impl TileRaycaster {
     }
 
     #[must_use]
-    pub fn tiles_in_path(&self, tp: TilePosition, angle: f32) -> IntersectionsIter {
+    pub fn cast_ray(&self, tp: TilePosition, angle: f32) -> IntersectionsIter {
         let intersections = Intersections::new(self.grid.clone(), tp, angle);
         intersections.into_iter()
     }
@@ -23,6 +29,43 @@ impl TileRaycaster {
     where
         P: FnMut(&TilePosition) -> bool,
     {
-        self.tiles_in_path(tp, angle).take_while(is_valid).last()
+        self.cast_ray(tp, angle).take_while(is_valid).last()
+    }
+
+    pub fn crossing<P>(&self, tp: TilePosition, angle: f32, mut is_valid: P) -> Crossing
+    where
+        P: FnMut(&TilePosition) -> bool,
+    {
+        let mut iter = self.cast_ray(tp, angle).peekable();
+        let mut previous = iter.next();
+
+        match previous {
+            None => return Crossing::default(),
+            Some(prev) if !is_valid(&prev) => return Crossing::default(),
+            Some(_) => {}
+        };
+
+        let (valid, invalid) = loop {
+            let next = iter.next();
+            match (previous, next) {
+                (Some(prev), Some(next)) => {
+                    if is_valid(&next) {
+                        previous = Some(next);
+                        continue;
+                    }
+                    break (Some(prev), Some(next));
+                }
+                (Some(prev), None) => {
+                    if is_valid(&prev) {
+                        break (Some(prev), None);
+                    }
+                    break (None, None);
+                }
+                (None, None) => break (None, None),
+                #[allow(clippy::panic)]
+                (None, Some(_)) => panic!("this is impossible"),
+            }
+        };
+        Crossing { valid, invalid }
     }
 }

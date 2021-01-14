@@ -6,7 +6,7 @@ use crisscross::{Grid, TilePosition, TileRaycaster};
 fn grid_4x4_0deg() {
     let tc = TileRaycaster::new(Grid::new(4, 4, 1.0));
     assert_eq!(
-        tc.tiles_in_path(((1, 0.5), (1, 0.5)).into(), 0_f32.to_radians())
+        tc.cast_ray(((1, 0.5), (1, 0.5)).into(), 0_f32.to_radians())
             .map(round_tp)
             .collect::<Vec<TilePosition>>(),
         [
@@ -16,7 +16,7 @@ fn grid_4x4_0deg() {
     );
 
     assert_eq!(
-        tc.tiles_in_path(((0, 0.0), (0, 0.0)).into(), 0_f32.to_radians())
+        tc.cast_ray(((0, 0.0), (0, 0.0)).into(), 0_f32.to_radians())
             .map(round_tp)
             .collect::<Vec<TilePosition>>(),
         [
@@ -31,7 +31,7 @@ fn grid_4x4_0deg() {
 fn grid_4x4_30deg() {
     let tc = TileRaycaster::new(Grid::new(4, 4, 1.0));
     assert_eq!(
-        tc.tiles_in_path(((1, 0.5), (1, 0.5)).into(), 30_f32.to_radians())
+        tc.cast_ray(((1, 0.5), (1, 0.5)).into(), 30_f32.to_radians())
             .map(round_tp)
             .collect::<Vec<TilePosition>>(),
         [
@@ -42,7 +42,7 @@ fn grid_4x4_30deg() {
     );
 
     assert_eq!(
-        tc.tiles_in_path(((0, 0.0), (0, 0.0)).into(), 30_f32.to_radians())
+        tc.cast_ray(((0, 0.0), (0, 0.0)).into(), 30_f32.to_radians())
             .map(round_tp)
             .collect::<Vec<TilePosition>>(),
         [
@@ -59,7 +59,7 @@ fn grid_4x4_30deg() {
 fn grid_4x4_45deg() {
     let tc = TileRaycaster::new(Grid::new(4, 4, 1.0));
     assert_eq!(
-        tc.tiles_in_path(((1, 0.5), (1, 0.5)).into(), 45_f32.to_radians())
+        tc.cast_ray(((1, 0.5), (1, 0.5)).into(), 45_f32.to_radians())
             .map(round_tp)
             .collect::<Vec<TilePosition>>(),
         [
@@ -73,7 +73,7 @@ fn grid_4x4_45deg() {
 fn grid_4x4_60deg() {
     let tc = TileRaycaster::new(Grid::new(4, 4, 1.0));
     assert_eq!(
-        tc.tiles_in_path(((1, 0.5), (1, 0.5)).into(), 60_f32.to_radians())
+        tc.cast_ray(((1, 0.5), (1, 0.5)).into(), 60_f32.to_radians())
             .map(round_tp)
             .collect::<Vec<TilePosition>>(),
         [
@@ -88,7 +88,7 @@ fn grid_4x4_60deg() {
 fn grid_4x4_90deg() {
     let tc = TileRaycaster::new(Grid::new(4, 4, 1.0));
     assert_eq!(
-        tc.tiles_in_path(((1, 0.5), (1, 0.5)).into(), 90_f32.to_radians())
+        tc.cast_ray(((1, 0.5), (1, 0.5)).into(), 90_f32.to_radians())
             .map(round_tp)
             .collect::<Vec<TilePosition>>(),
         [
@@ -102,7 +102,7 @@ fn grid_4x4_90deg() {
 fn grid_4x4_150deg() {
     let tc = TileRaycaster::new(Grid::new(4, 4, 1.0));
     assert_eq!(
-        tc.tiles_in_path(((1, 0.5), (1, 0.5)).into(), 150_f32.to_radians())
+        tc.cast_ray(((1, 0.5), (1, 0.5)).into(), 150_f32.to_radians())
             .map(round_tp)
             .collect::<Vec<TilePosition>>(),
         [
@@ -116,7 +116,7 @@ fn grid_4x4_150deg() {
 fn grid_4x4_210deg() {
     let tc = TileRaycaster::new(Grid::new(4, 4, 1.0));
     assert_eq!(
-        tc.tiles_in_path(((1, 0.5), (1, 0.5)).into(), 210_f32.to_radians())
+        tc.cast_ray(((1, 0.5), (1, 0.5)).into(), 210_f32.to_radians())
             .map(round_tp)
             .collect::<Vec<TilePosition>>(),
         [
@@ -130,7 +130,7 @@ fn grid_4x4_210deg() {
 fn grid_4x4_330deg() {
     let tc = TileRaycaster::new(Grid::new(4, 4, 1.0));
     assert_eq!(
-        tc.tiles_in_path(((1, 0.5), (1, 0.5)).into(), 330_f32.to_radians())
+        tc.cast_ray(((1, 0.5), (1, 0.5)).into(), 330_f32.to_radians())
             .map(round_tp)
             .collect::<Vec<TilePosition>>(),
         [
@@ -141,7 +141,7 @@ fn grid_4x4_330deg() {
     );
 
     assert_eq!(
-        tc.tiles_in_path(((0, 0.25), (3, 0.25)).into(), 330_f32.to_radians())
+        tc.cast_ray(((0, 0.25), (3, 0.25)).into(), 330_f32.to_radians())
             .map(round_tp)
             .collect::<Vec<TilePosition>>(),
         [
