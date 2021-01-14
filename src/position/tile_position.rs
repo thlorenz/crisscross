@@ -1,10 +1,10 @@
 use std::{convert::TryFrom, fmt, ops};
 
-use crate::util::round;
+use crate::util::{floats_equal, round, round_stp, round_tp};
 
 use super::WorldCoords;
 
-const TILE_POSITION_PRECISION: usize = if cfg!(test) { 3 } else { 8 };
+const TILE_POSITION_PRECISION: usize = 8;
 
 #[derive(Clone)]
 pub struct TilePosition {
@@ -15,12 +15,30 @@ pub struct TilePosition {
     pub rel_y: f32,
 }
 
-#[derive(Debug, PartialEq)]
+impl PartialEq for TilePosition {
+    fn eq(&self, other: &Self) -> bool {
+        self.x == other.x
+            && self.y == other.y
+            && floats_equal(self.rel_x, other.rel_x)
+            && floats_equal(self.rel_y, other.rel_y)
+    }
+}
+
+#[derive(Clone)]
 pub struct SignedTilePosition {
     pub x: i64,
     pub y: i64,
     pub rel_x: f32,
     pub rel_y: f32,
+}
+
+impl PartialEq for SignedTilePosition {
+    fn eq(&self, other: &Self) -> bool {
+        self.x == other.x
+            && self.y == other.y
+            && floats_equal(self.rel_x, other.rel_x)
+            && floats_equal(self.rel_y, other.rel_y)
+    }
 }
 
 impl TilePosition {
@@ -40,6 +58,14 @@ impl TilePosition {
     {
         self.to_world_coords(tile_size)
             .distance(&other.into().to_world_coords(tile_size))
+    }
+
+    pub fn is_same_tile<'a, T>(&self, other: T) -> bool
+    where
+        T: Into<&'a Self>,
+    {
+        let other = other.into();
+        self.x == other.x && self.y == other.y
     }
 
     fn to_world_coords(&self, tile_size: f32) -> WorldCoords {
@@ -100,25 +126,43 @@ impl TryFrom<SignedTilePosition> for TilePosition {
     }
 }
 
-impl fmt::Debug for TilePosition {
+impl fmt::Debug for SignedTilePosition {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let p = TILE_POSITION_PRECISION;
-        write!(
-            f,
-            "(({}, {:.*}), ({}, {:.*})).into()",
-            self.x, p, self.rel_x, self.y, p, self.rel_y
-        )
+        let p = 3;
+        if cfg!(any(feature = "test", test)) {
+            let tp = round_stp(self);
+            write!(
+                f,
+                "(({}, {:.*}), ({}, {:.*})).into()",
+                tp.x, p, tp.rel_x, tp.y, p, tp.rel_y,
+            )
+        } else {
+            write!(
+                f,
+                "SignedTilePosition x: {}, rel_x: {:.*}), y: {}, rel_y: {:.*}",
+                self.x, p, self.rel_x, self.y, p, self.rel_y
+            )
+        }
     }
 }
 
-impl PartialEq for TilePosition {
-    fn eq(&self, other: &Self) -> bool {
-        self.x == other.x
-            && self.y == other.y
-            && round(self.rel_x, TILE_POSITION_PRECISION)
-                == round(other.rel_x, TILE_POSITION_PRECISION)
-            && round(self.rel_y, TILE_POSITION_PRECISION)
-                == round(other.rel_y, TILE_POSITION_PRECISION)
+impl fmt::Debug for TilePosition {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let p = 3;
+        if cfg!(any(feature = "test", test)) {
+            let tp = round_tp(self);
+            write!(
+                f,
+                "(({}, {:.*}), ({}, {:.*})).into()",
+                tp.x, p, tp.rel_x, tp.y, p, tp.rel_y,
+            )
+        } else {
+            write!(
+                f,
+                "TilePosition x: {}, rel_x: {:.*}), y: {}, rel_y: {:.*}",
+                self.x, p, self.rel_x, self.y, p, self.rel_y
+            )
+        }
     }
 }
 

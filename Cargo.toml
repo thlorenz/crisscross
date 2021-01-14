@@ -3,3 +3,8 @@ name = "crisscross"
 version = "0.1.0"
 authors = ["Thorsten Lorenz <thlorenz@gmx.de>"]
 edition = "2018"
+
+[features]
+# The reason we do this is because integration tests don't get cfg(test)
+# See: https://github.com/rust-lang/cargo/issues/4669
+test = []

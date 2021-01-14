@@ -1,22 +1,20 @@
-use crate::{intersections::Intersections, position::TilePosition};
+use crate::{ray::Ray, position::TilePosition};
 
-pub struct IntersectionsIter {
-    intersections: Intersections,
+pub struct RayIter {
+    intersections: Ray,
     last_intersect: Option<(u32, u32)>,
 }
 
-impl Intersections {
-    const fn iter(self) -> IntersectionsIter {
-        IntersectionsIter {
+impl Ray {
+    const fn iter(self) -> RayIter {
+        RayIter {
             intersections: self,
             last_intersect: None,
         }
     }
 }
 
-impl IntersectionsIter {}
-
-impl Iterator for IntersectionsIter {
+impl Iterator for RayIter {
     type Item = TilePosition;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -36,9 +34,9 @@ impl Iterator for IntersectionsIter {
     }
 }
 
-impl IntoIterator for Intersections {
+impl IntoIterator for Ray {
     type Item = TilePosition;
-    type IntoIter = IntersectionsIter;
+    type IntoIter = RayIter;
 
     fn into_iter(self) -> Self::IntoIter {
         self.iter()

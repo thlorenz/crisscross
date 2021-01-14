@@ -9,6 +9,7 @@ use std::{
 use crate::{
     grid::Grid,
     position::{SignedTilePosition, TilePosition, WorldCoords},
+    util::floats_equal,
 };
 
 const DEG_90: f32 = PI * 0.5;
@@ -27,10 +28,20 @@ enum DirectionY {
     Parallel,
 }
 
+fn normalize_zeros(tp: &mut SignedTilePosition) {
+    // Avoid (-0.0)
+    if floats_equal(tp.rel_x, 0.0) {
+        tp.rel_x = 0.0;
+    }
+    if floats_equal(tp.rel_y, 0.0) {
+        tp.rel_y = 0.0;
+    }
+}
+
 /// Assumes origin (0, 0) is at bottom left.
 /// Assumes relative tile position are based on (0.0, 0.0) being located at the bottom left of each
 /// tile.
-pub struct Intersections {
+pub struct Ray {
     wc: WorldCoords,
     tan: f32,
     direction_x: DirectionX,
@@ -46,7 +57,7 @@ pub struct Intersections {
 //
 // Constructor API
 //
-impl Intersections {
+impl Ray {
     pub(crate) fn new(grid: Grid, tp: TilePosition, angle: f32) -> Self {
         let wc = WorldCoords::from_tile_position(&tp, grid.tile_size);
 
@@ -79,7 +90,9 @@ impl Intersections {
             })
             .map(|dx| {
                 let dy = tan * dx;
-                WorldCoords::new(dx, dy, grid.tile_size).to_signed_tile_position()
+                let mut stp = WorldCoords::new(dx, dy, grid.tile_size).to_signed_tile_position();
+                normalize_zeros(&mut stp);
+                stp
             })
         };
 
@@ -91,7 +104,9 @@ impl Intersections {
             })
             .map(|dy| {
                 let dx = dy / tan;
-                WorldCoords::new(dx, dy, grid.tile_size).to_signed_tile_position()
+                let mut stp = WorldCoords::new(dx, dy, grid.tile_size).to_signed_tile_position();
+                normalize_zeros(&mut stp);
+                stp
             })
         };
 
@@ -117,7 +132,7 @@ impl Intersections {
 //
 // Inital Intersects
 //
-impl Intersections {
+impl Ray {
     #[allow(clippy::integer_arithmetic)]
     fn initial_x_intersect(&self) -> Option<TilePosition> {
         if self.direction_x == DirectionX::Left && self.tp.x == 0
@@ -160,23 +175,11 @@ impl Intersections {
 //
 // Validators/Normalizers
 //
-impl Intersections {
+impl Ray {
     fn normalized_valid_tile_position(&self, wc: &WorldCoords) -> Option<TilePosition> {
         let mut stp = wc.to_signed_tile_position();
         self.normalize(&mut stp);
         self.validated_tile_position(stp)
-    }
-
-    #[allow(clippy::integer_arithmetic)]
-    fn normalize(&self, tp: &mut SignedTilePosition) {
-        if self.direction_x == DirectionX::Left && tp.rel_x == 0.0 {
-            tp.x -= 1;
-            tp.rel_x += self.grid.tile_size;
-        }
-        if self.direction_y == DirectionY::Down && tp.rel_y == 0.0 {
-            tp.y -= 1;
-            tp.rel_y += self.grid.tile_size;
-        }
     }
 
     fn validated_tile_position(&self, stp: SignedTilePosition) -> Option<TilePosition> {
@@ -193,6 +196,19 @@ impl Intersections {
             None
         }
     }
+
+    #[allow(clippy::integer_arithmetic)]
+    fn normalize(&self, tp: &mut SignedTilePosition) {
+        if self.direction_x == DirectionX::Left && floats_equal(tp.rel_x, 0.0) {
+            tp.x -= 1;
+            tp.rel_x += self.grid.tile_size;
+        }
+        if self.direction_y == DirectionY::Down && floats_equal(tp.rel_y, 0.0) {
+            tp.y -= 1;
+            tp.rel_y += self.grid.tile_size;
+        }
+        normalize_zeros(tp);
+    }
 }
 
 //
@@ -203,7 +219,7 @@ enum Axis {
     Y,
 }
 
-impl Intersections {
+impl Ray {
     pub(crate) fn next_intersect(&mut self) -> Option<TilePosition> {
         let closest_axis = match (&self.intersect_x, &self.intersect_y) {
             (None, None) => None,
@@ -261,14 +277,16 @@ impl Intersections {
 
 #[cfg(test)]
 mod tests {
+    use crate::util::{round_ostp, round_otp};
+
     use super::*;
 
-    fn init_centered_3x3(angle_deg: f32) -> Intersections {
+    fn init_centered_3x3(angle_deg: f32) -> Ray {
         let tile_size = 1.0;
         let grid = Grid::new(3, 3, tile_size);
         let tp = TilePosition::new(1, 1, 0.5, 0.5);
 
-        Intersections::new(grid, tp, angle_deg.to_radians())
+        Ray::new(grid, tp, angle_deg.to_radians())
     }
 
     #[test]
@@ -290,7 +308,7 @@ mod tests {
             (390.0, DirectionX::Right, DirectionY::Up),
             (405.0, DirectionX::Right, DirectionY::Up),
         ] {
-            let Intersections {
+            let Ray {
                 direction_x,
                 direction_y,
                 ..
@@ -352,13 +370,13 @@ mod tests {
             ),
         ];
         for (angle, x, y) in test_cases {
-            let Intersections {
+            let Ray {
                 intersect_x,
                 intersect_y,
                 ..
             } = init_centered_3x3(angle);
-            assert_eq!(intersect_x, x);
-            assert_eq!(intersect_y, y);
+            assert_eq!(round_otp(intersect_x), x);
+            assert_eq!(round_otp(intersect_y), y);
         }
     }
     #[test]
@@ -394,8 +412,8 @@ mod tests {
             (180.0, Some(((-1, 0.00), (0, 0.00)).into()), None),
             (
                 225.0,
-                Some(((-1, 0.00), (-1, 0.000)).into()),
-                Some(((-1, 0.00), (-1, 0.000)).into()),
+                Some(((-1, 0.000), (0, -1.000)).into()),
+                Some(((-1, 0.000), (-1, 0.000)).into()),
             ),
             (
                 210.0,
@@ -405,8 +423,8 @@ mod tests {
             (270.0, None, Some(((0, 0.00), (-1, 0.00)).into())),
             (
                 315.0,
-                Some(((1, 0.00), (-1, 0.000)).into()),
-                Some(((1, 0.00), (-1, 0.000)).into()),
+                Some(((1, 0.000), (-1, 0.000)).into()),
+                Some(((0, 1.00), (-1, 0.000)).into()),
             ),
             (
                 330.0,
@@ -415,13 +433,13 @@ mod tests {
             ),
         ];
         for (angle, dx, dy) in test_cases {
-            let Intersections {
+            let Ray {
                 delta_x_axis_intersect: delta_x_axis_intersects,
                 delta_y_axis_intersect: delta_y_axis_intersects,
                 ..
             } = init_centered_3x3(angle);
-            assert_eq!(delta_x_axis_intersects, dx);
-            assert_eq!(delta_y_axis_intersects, dy);
+            assert_eq!(round_ostp(delta_x_axis_intersects), dx);
+            assert_eq!(round_ostp(delta_y_axis_intersects), dy);
         }
     }
 }

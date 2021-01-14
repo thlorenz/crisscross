@@ -1,5 +1,7 @@
 use crate::{
-    grid::Grid, intersections::Intersections, intersections_iter::IntersectionsIter,
+    grid::Grid,
+    ray::Ray,
+    ray_iter::RayIter,
     position::TilePosition,
 };
 
@@ -20,8 +22,8 @@ impl TileRaycaster {
     }
 
     #[must_use]
-    pub fn cast_ray(&self, tp: TilePosition, angle: f32) -> IntersectionsIter {
-        let intersections = Intersections::new(self.grid.clone(), tp, angle);
+    pub fn cast_ray(&self, tp: TilePosition, angle: f32) -> RayIter {
+        let intersections = Ray::new(self.grid.clone(), tp, angle);
         intersections.into_iter()
     }
 
@@ -40,32 +42,34 @@ impl TileRaycaster {
         let mut previous = iter.next();
 
         match previous {
-            None => return Crossing::default(),
-            Some(prev) if !is_valid(&prev) => return Crossing::default(),
-            Some(_) => {}
-        };
-
-        let (valid, invalid) = loop {
-            let next = iter.next();
-            match (previous, next) {
-                (Some(prev), Some(next)) => {
-                    if is_valid(&next) {
-                        previous = Some(next);
-                        continue;
+            None => Crossing::default(),
+            Some(prev) if !is_valid(&prev) => Crossing::default(),
+            Some(_) => {
+                let (valid, invalid) = loop {
+                    let next = iter.next();
+                    match (previous, next) {
+                        (Some(prev), Some(next)) => {
+                            if is_valid(&next) {
+                                previous = Some(next);
+                                continue;
+                            }
+                            break (Some(prev), Some(next));
+                        }
+                        (Some(prev), None) => {
+                            if is_valid(&prev) {
+                                break (Some(prev), None);
+                            }
+                            break (None, None);
+                        }
+                        (None, None) => break (None, None),
+                        #[allow(clippy::panic)]
+                        (None, Some(_)) => {
+                            panic!("(prev: None, next: Some(_)) should be impossible")
+                        }
                     }
-                    break (Some(prev), Some(next));
-                }
-                (Some(prev), None) => {
-                    if is_valid(&prev) {
-                        break (Some(prev), None);
-                    }
-                    break (None, None);
-                }
-                (None, None) => break (None, None),
-                #[allow(clippy::panic)]
-                (None, Some(_)) => panic!("this is impossible"),
+                };
+                Crossing { valid, invalid }
             }
-        };
-        Crossing { valid, invalid }
+        }
     }
 }

@@ -4,7 +4,7 @@ use crate::util::round;
 
 use super::{SignedTilePosition, TilePosition};
 
-const WORLD_POSITION_PRECISION: usize = if cfg!(test) { 3 } else { 8 };
+const WORLD_POSITION_PRECISION: usize = 8;
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct WorldCoords {
@@ -68,17 +68,19 @@ impl WorldCoords {
 
 #[cfg(test)]
 mod tests {
+    use crate::util::round_stp;
+
     use super::*;
 
     #[test]
     fn conversions() {
         let wc = WorldCoords::new(-1.732, 1.0, 1.0);
         let stp = wc.to_signed_tile_position();
-        assert_eq!(stp, ((-1, -0.732), (1, 0.0)).into());
+        assert_eq!(round_stp(&stp), ((-1, -0.732), (1, 0.0)).into());
 
         let wc = WorldCoords::new(5.196, 3.0, 1.0);
         let stp = wc.to_signed_tile_position();
-        assert_eq!(stp, ((5, 0.196), (3, 0.0)).into());
+        assert_eq!(round_stp(&stp), ((5, 0.196), (3, 0.0)).into());
     }
 
     #[test]

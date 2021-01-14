@@ -47,17 +47,18 @@
 )]
 #![allow(
     // TODO(thlorenz): add docs
+    clippy::cargo_common_metadata,
+    clippy::erasing_op,
+    clippy::module_name_repetitions,
+    clippy::must_use_candidate,
+    clippy::similar_names,
     missing_crate_level_docs,
     missing_doc_code_examples,
-    clippy::similar_names,
-    clippy::module_name_repetitions,
-    clippy::erasing_op,
-    clippy::cargo_common_metadata
 )]
 mod grid;
-mod intersections;
-mod intersections_iter;
 mod position;
+mod ray;
+mod ray_iter;
 mod tile_raycaster;
 mod util;
 

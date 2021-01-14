@@ -5,6 +5,7 @@ use crisscross::{Crossing, Grid, TilePosition, TileRaycaster};
 #[test]
 fn last_valid() {
     let tc = TileRaycaster::new(Grid::new(4, 4, 1.0));
+
     assert_eq!(
         tc.last_valid(((0, 0.0), (0, 0.0)).into(), 30_f32.to_radians(), |tp| {
             tp.y < 2
@@ -22,6 +23,7 @@ fn cutoff() {
         30_f32.to_radians(),
         |tp| tp.y < 2,
     ));
+
     assert_eq!(
         cutoff,
         Crossing {
