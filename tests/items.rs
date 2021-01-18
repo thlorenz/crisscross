@@ -7,7 +7,7 @@ fn last_valid() {
     let tc = TileRaycaster::new(Grid::new(4, 4, 1.0));
 
     assert_eq!(
-        tc.last_valid(((0, 0.0), (0, 0.0)).into(), 30_f32.to_radians(), |tp| {
+        tc.last_valid(&((0, 0.0), (0, 0.0)).into(), 30_f32.to_radians(), |tp| {
             tp.y < 2
         })
         .map(round_tp),
@@ -19,7 +19,7 @@ fn last_valid() {
 fn cutoff() {
     let tc = TileRaycaster::new(Grid::new(4, 4, 1.0));
     let cutoff = round_cutoff(tc.crossing(
-        ((0, 0.0), (0, 0.0)).into(),
+        &((0, 0.0), (0, 0.0)).into(),
         30_f32.to_radians(),
         |tp| tp.y < 2,
     ));
@@ -34,32 +34,32 @@ fn cutoff() {
 
     let tp_0_0: TilePosition = ((0, 0.0), (0, 0.0)).into();
     assert_eq!(
-        round_cutoff(tc.crossing(tp_0_0.clone(), 0_f32.to_radians(), |tp| tp.x <= 0)),
+        round_cutoff(tc.crossing(&tp_0_0, 0_f32.to_radians(), |tp| tp.x <= 0)),
         Crossing::default(),
     );
     assert_eq!(
-        round_cutoff(tc.crossing(tp_0_0.clone(), 0_f32.to_radians(), |tp| tp.x <= 1)),
+        round_cutoff(tc.crossing(&tp_0_0, 0_f32.to_radians(), |tp| tp.x <= 1)),
         Crossing {
             valid: Some(((1, 0.000), (0, 0.000)).into()),
             invalid: Some(((2, 0.000), (0, 0.000)).into())
         }
     );
     assert_eq!(
-        round_cutoff(tc.crossing(tp_0_0.clone(), 0_f32.to_radians(), |tp| tp.x <= 2)),
+        round_cutoff(tc.crossing(&tp_0_0, 0_f32.to_radians(), |tp| tp.x <= 2)),
         Crossing {
             valid: Some(((2, 0.000), (0, 0.000)).into()),
             invalid: Some(((3, 0.000), (0, 0.000)).into())
         }
     );
     assert_eq!(
-        round_cutoff(tc.crossing(tp_0_0.clone(), 0_f32.to_radians(), |tp| tp.x <= 3)),
+        round_cutoff(tc.crossing(&tp_0_0, 0_f32.to_radians(), |tp| tp.x <= 3)),
         Crossing {
             valid: Some(((3, 0.000), (0, 0.000)).into()),
             invalid: None,
         }
     );
     assert_eq!(
-        round_cutoff(tc.crossing(tp_0_0.clone(), 0_f32.to_radians(), |tp| tp.x <= 4)),
+        round_cutoff(tc.crossing(&tp_0_0, 0_f32.to_radians(), |tp| tp.x <= 4)),
         Crossing {
             valid: Some(((3, 0.000), (0, 0.000)).into()),
             invalid: None,

@@ -1,5 +1,5 @@
 #![allow(unused)] // work around cargo bug
-use crisscross::{Crossing, TilePosition};
+use crisscross::{BeamIntersect, Crossing, TilePosition};
 
 #[allow(
     clippy::as_conversions,
@@ -41,4 +41,8 @@ pub fn round_cutoff(
         valid: last_valid.map(round_tp),
         invalid: first_invalid.map(round_tp),
     }
+}
+
+pub fn round_beam_intersect(BeamIntersect(idx, tp): BeamIntersect) -> BeamIntersect {
+    BeamIntersect(idx, round_tp(tp))
 }

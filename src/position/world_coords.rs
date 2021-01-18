@@ -1,17 +1,19 @@
-use std::convert::TryInto;
+use std::{convert::TryInto, fmt};
 
-use crate::util::round;
+use crate::{
+    util::{round, round_wc},
+    Grid,
+};
 
 use super::{SignedTilePosition, TilePosition};
 
 const WORLD_POSITION_PRECISION: usize = 8;
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, PartialEq)]
 pub struct WorldCoords {
-    x: f32,
-    y: f32,
-    #[allow(dead_code)]
-    tile_size: f32,
+    pub(crate) x: f32,
+    pub(crate) y: f32,
+    pub(crate) tile_size: f32,
 }
 
 impl WorldCoords {
@@ -63,6 +65,32 @@ impl WorldCoords {
         let rel_x = self.x % self.tile_size;
         let rel_y = self.y % self.tile_size;
         SignedTilePosition::new(x, y, rel_x, rel_y)
+    }
+
+    #[allow(dead_code)]
+    pub(crate) fn is_inside_grid(&self, grid: &Grid) -> bool {
+        (0.0 < self.x && f64::from(self.x) <= grid.width)
+            && (0.0 < self.y && f64::from(self.y) <= grid.height)
+    }
+}
+
+impl fmt::Debug for WorldCoords {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let p = 3;
+        if cfg!(any(feature = "test", test)) {
+            let wc = round_wc(self);
+            write!(
+                f,
+                "({:.*}, {:.*}), {:.*}",
+                p, wc.x, p, wc.y, p, wc.tile_size,
+            )
+        } else {
+            write!(
+                f,
+                "WorldCoords {{ x: {:.*}, y: {:.*}, tile_size: {:.*} }}).into()",
+                p, self.x, p, self.y, p, self.tile_size,
+            )
+        }
     }
 }
 

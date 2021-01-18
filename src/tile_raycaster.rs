@@ -1,8 +1,6 @@
 use crate::{
-    grid::Grid,
-    ray::Ray,
-    ray_iter::RayIter,
-    position::TilePosition,
+    beam::Beam, beam_iter::BeamIter, grid::Grid, position::TilePosition, ray::Ray,
+    ray_iter::RayIter, rays::rays_from, AngleRad,
 };
 
 #[derive(Debug, Default, PartialEq)]
@@ -22,19 +20,39 @@ impl TileRaycaster {
     }
 
     #[must_use]
-    pub fn cast_ray(&self, tp: TilePosition, angle: f32) -> RayIter {
-        let intersections = Ray::new(self.grid.clone(), tp, angle);
+    pub fn cast_ray<T: Into<AngleRad>>(&self, tp: &TilePosition, angle: T) -> RayIter {
+        let intersections = Ray::new(self.grid.clone(), tp.clone(), angle);
         intersections.into_iter()
     }
 
-    pub fn last_valid<P>(&self, tp: TilePosition, angle: f32, is_valid: P) -> Option<TilePosition>
+    pub fn cast_beam<T: Into<AngleRad>>(
+        &self,
+        beam_center: &TilePosition,
+        beam_width: f32,
+        angle: T,
+    ) -> BeamIter {
+        let rays = rays_from(beam_center, &self.grid, beam_width, angle.into());
+        Beam::new(self.grid.tile_size, rays).into_iter()
+    }
+
+    pub fn last_valid<P, T: Into<AngleRad>>(
+        &self,
+        tp: &TilePosition,
+        angle: T,
+        is_valid: P,
+    ) -> Option<TilePosition>
     where
         P: FnMut(&TilePosition) -> bool,
     {
         self.cast_ray(tp, angle).take_while(is_valid).last()
     }
 
-    pub fn crossing<P>(&self, tp: TilePosition, angle: f32, mut is_valid: P) -> Crossing
+    pub fn crossing<P, T: Into<AngleRad>>(
+        &self,
+        tp: &TilePosition,
+        angle: T,
+        mut is_valid: P,
+    ) -> Crossing
     where
         P: FnMut(&TilePosition) -> bool,
     {

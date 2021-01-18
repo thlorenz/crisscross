@@ -1,8 +1,11 @@
 #![allow(unused)]
-use std::f32::EPSILON;
+use std::f32::{consts::TAU, EPSILON};
 
 // work around cargo bug
-use crate::{position::SignedTilePosition, TilePosition};
+use crate::{
+    position::{SignedTilePosition, WorldCoords},
+    TilePosition,
+};
 
 pub fn floats_equal(f1: f32, f2: f32) -> bool {
     (f1 - f2).abs() < EPSILON
@@ -18,6 +21,11 @@ pub fn round(n: f32, decimals: usize) -> f32 {
     ((f64::from(n) * factor).round() / factor) as f32
 }
 
+pub fn round_wc(wc: &WorldCoords) -> WorldCoords {
+    let WorldCoords { x, y, tile_size } = wc;
+    WorldCoords::new(round(*x, 3), round(*y, 3), *tile_size)
+}
+
 pub fn round_tp(tp: &TilePosition) -> TilePosition {
     let TilePosition { x, y, rel_x, rel_y } = tp;
     TilePosition {
@@ -29,7 +37,7 @@ pub fn round_tp(tp: &TilePosition) -> TilePosition {
 }
 
 #[cfg(test)]
-pub(crate) fn round_otp(tp: Option<TilePosition>) -> Option<TilePosition> {
+pub fn round_otp(tp: Option<TilePosition>) -> Option<TilePosition> {
     let TilePosition { x, y, rel_x, rel_y } = tp?;
     Some(TilePosition {
         x,
@@ -50,7 +58,7 @@ pub fn round_stp(stp: &SignedTilePosition) -> SignedTilePosition {
 }
 
 #[cfg(test)]
-pub(crate) fn round_ostp(tp: Option<SignedTilePosition>) -> Option<SignedTilePosition> {
+pub fn round_ostp(tp: Option<SignedTilePosition>) -> Option<SignedTilePosition> {
     let SignedTilePosition { x, y, rel_x, rel_y } = tp?;
     Some(SignedTilePosition {
         x,

@@ -1,32 +1,12 @@
-use std::{
-    convert::TryInto,
-    f32::{
-        consts::{PI, TAU},
-        EPSILON,
-    },
-};
+use std::convert::TryInto;
 
 use crate::{
+    angle::{DirectionX, DirectionY},
     grid::Grid,
     position::{SignedTilePosition, TilePosition, WorldCoords},
     util::floats_equal,
+    AngleRad,
 };
-
-const DEG_90: f32 = PI * 0.5;
-const DEG_270: f32 = PI * 1.5;
-
-#[derive(Debug, PartialEq)]
-enum DirectionX {
-    Left,
-    Right,
-    Parallel,
-}
-#[derive(Debug, PartialEq)]
-enum DirectionY {
-    Up,
-    Down,
-    Parallel,
-}
 
 fn normalize_zeros(tp: &mut SignedTilePosition) {
     // Avoid (-0.0)
@@ -41,46 +21,34 @@ fn normalize_zeros(tp: &mut SignedTilePosition) {
 /// Assumes origin (0, 0) is at bottom left.
 /// Assumes relative tile position are based on (0.0, 0.0) being located at the bottom left of each
 /// tile.
+#[derive(Debug)]
 pub struct Ray {
-    wc: WorldCoords,
     tan: f32,
     direction_x: DirectionX,
     direction_y: DirectionY,
     grid: Grid,
-    tp: TilePosition,
     intersect_x: Option<TilePosition>,
     intersect_y: Option<TilePosition>,
     delta_x_axis_intersect: Option<SignedTilePosition>,
     delta_y_axis_intersect: Option<SignedTilePosition>,
+    pub(crate) wc: WorldCoords,
+    pub(crate) tp: TilePosition,
 }
 
 //
 // Constructor API
 //
 impl Ray {
-    pub(crate) fn new(grid: Grid, tp: TilePosition, angle: f32) -> Self {
+    pub(crate) fn new<T>(grid: Grid, tp: TilePosition, angle: T) -> Self
+    where
+        T: Into<AngleRad>,
+    {
         let wc = WorldCoords::from_tile_position(&tp, grid.tile_size);
+        let angle = (angle).into().clamp();
+        let tan = angle.0.tan();
 
-        // Clamp angle to 0.0..TAU
-        let angle = match angle {
-            x if x >= TAU => x - TAU,
-            x if x < 0.0 => x + TAU,
-            x => x,
-        };
-        let tan = angle.tan();
-
-        let direction_x = match angle {
-            x if (x - DEG_90).abs() < EPSILON || (x - DEG_270).abs() < EPSILON => {
-                DirectionX::Parallel
-            }
-            x if !(DEG_90..=DEG_270).contains(&x) => DirectionX::Right,
-            _ => DirectionX::Left,
-        };
-        let direction_y = match angle {
-            x if x.abs() < EPSILON || (x - PI).abs() < EPSILON => DirectionY::Parallel,
-            x if x < PI => DirectionY::Up,
-            _ => DirectionY::Down,
-        };
+        let direction_x: DirectionX = (&angle).into();
+        let direction_y: DirectionY = (&angle).into();
 
         let delta_x_axis_intersects = {
             (match direction_x {

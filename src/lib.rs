@@ -27,7 +27,6 @@
     clippy::lossy_float_literal,
     clippy::map_err_ignore,
     clippy::mem_forget,
-    clippy::panic,
     clippy::panic_in_result_fn,
     clippy::print_stdout,
     clippy::rc_buffer,
@@ -55,13 +54,19 @@
     missing_crate_level_docs,
     missing_doc_code_examples,
 )]
+mod angle;
+mod beam;
+mod beam_iter;
 mod grid;
 mod position;
 mod ray;
 mod ray_iter;
+mod rays;
 mod tile_raycaster;
 mod util;
 
+pub use angle::AngleRad;
+pub use beam::BeamIntersect;
 pub use grid::Grid;
 pub use position::TilePosition;
 pub use tile_raycaster::{Crossing, TileRaycaster};
