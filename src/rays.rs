@@ -8,7 +8,7 @@ use crate::{
 
 const RAY_PRECISION: usize = 8;
 
-pub fn rays_from(center: &TilePosition, grid: &Grid, width: f32, angle: AngleRad) -> Vec<Ray> {
+pub fn rays_from(center: &TilePosition, grid: &Grid, width: f32, angle: &AngleRad) -> Vec<Ray> {
     debug_assert!(width > 0.0, "width needs to be > 0");
 
     let center_wc = WorldCoords::from_tile_position(center, grid.tile_size);
@@ -22,13 +22,13 @@ pub fn rays_from(center: &TilePosition, grid: &Grid, width: f32, angle: AngleRad
     // sections on each side
     let sections = (width.ceil() / grid.tile_size.floor()).max(1.0).ceil();
     let section_width = (width / 2.0) / sections;
-    let sections = sections as i16;
-
     #[allow(
         clippy::as_conversions,
         clippy::cast_sign_loss,
         clippy::clippy::cast_possible_truncation
     )]
+    let sections = sections as i16;
+
     let (fx, fy) = {
         (
             match DirectionX::from(&left_rad) {
@@ -42,6 +42,7 @@ pub fn rays_from(center: &TilePosition, grid: &Grid, width: f32, angle: AngleRad
         )
     };
 
+    #[allow(clippy::integer_arithmetic)]
     (-sections..=sections)
         .filter_map(|idx| {
             let len = section_width * f32::from(idx);
@@ -65,7 +66,7 @@ mod tests {
         width: f32,
         angle: T,
     ) -> Vec<TilePosition> {
-        let rays = rays_from(center, grid, width, angle.into());
+        let rays = rays_from(center, grid, width, &angle.into());
         rays.iter().map(|ray| round_tp(&ray.tp)).collect()
     }
 

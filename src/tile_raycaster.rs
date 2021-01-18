@@ -31,7 +31,7 @@ impl TileRaycaster {
         beam_width: f32,
         angle: T,
     ) -> BeamIter {
-        let rays = rays_from(beam_center, &self.grid, beam_width, angle.into());
+        let rays = rays_from(beam_center, &self.grid, beam_width, &angle.into());
         Beam::new(self.grid.tile_size, rays).into_iter()
     }
 
