@@ -54,6 +54,12 @@
     missing_crate_level_docs,
     missing_doc_code_examples,
 )]
+
+#[cfg(feature = "plot")]
+mod test_utils;
+#[cfg(feature = "plot")]
+pub use test_utils::*;
+
 mod angle;
 mod beam;
 mod beam_iter;

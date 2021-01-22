@@ -12,7 +12,7 @@ pub struct Beam {
 
 impl Beam {
     pub(crate) fn new(tile_size: f32, rays: Vec<Ray>) -> Self {
-        let ray_origins = dbg!(rays.iter().map(|ray| ray.tp.clone()).collect());
+        let ray_origins = rays.iter().map(|ray| ray.tp.clone()).collect();
         let mut rays: Vec<RayIter> = rays.into_iter().map(IntoIterator::into_iter).collect();
 
         let mut intersects = vec![None; rays.len()];

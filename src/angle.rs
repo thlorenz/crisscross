@@ -30,6 +30,10 @@ impl AngleRad {
     pub fn cos(&self) -> f32 {
         self.0.cos()
     }
+
+    pub fn degrees(&self) -> f32 {
+        self.0.to_degrees()
+    }
 }
 
 impl From<f32> for AngleRad {
@@ -54,9 +58,7 @@ pub enum DirectionY {
 impl From<&AngleRad> for DirectionX {
     fn from(angle: &AngleRad) -> Self {
         match angle.0 {
-            x if (x - DEG_90).abs() < EPSILON || (x - DEG_270).abs() < EPSILON => {
-                Self::Parallel
-            }
+            x if (x - DEG_90).abs() < EPSILON || (x - DEG_270).abs() < EPSILON => Self::Parallel,
             x if !(DEG_90..=DEG_270).contains(&x) => Self::Right,
             _ => Self::Left,
         }

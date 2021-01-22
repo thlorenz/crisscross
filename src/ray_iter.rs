@@ -1,4 +1,4 @@
-use crate::{ray::Ray, position::TilePosition};
+use crate::{position::TilePosition, ray::Ray};
 
 pub struct RayIter {
     intersections: Ray,

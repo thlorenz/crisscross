@@ -245,6 +245,9 @@ impl Ray {
 
 #[cfg(test)]
 mod tests {
+    #[cfg(feature = "plot")]
+    use crate::plot::{plot_ray, PlotType};
+
     use crate::util::{round_ostp, round_otp};
 
     use super::*;
@@ -338,15 +341,37 @@ mod tests {
             ),
         ];
         for (angle, x, y) in test_cases {
+            let ray = init_centered_3x3(angle);
             let Ray {
                 intersect_x,
                 intersect_y,
                 ..
-            } = init_centered_3x3(angle);
+            } = ray;
+
+            #[cfg(feature = "plot")]
+            {
+                let tps: Vec<&TilePosition> = vec![&intersect_x, &intersect_y]
+                    .into_iter()
+                    .flat_map(|x| x)
+                    .collect();
+
+                let Ray { grid, tp, .. } = ray;
+
+                plot_ray(
+                    "starting_intersections",
+                    &grid,
+                    &tp,
+                    angle.to_radians(),
+                    tps,
+                    PlotType::File,
+                );
+            }
+
             assert_eq!(round_otp(intersect_x), x);
             assert_eq!(round_otp(intersect_y), y);
         }
     }
+
     #[test]
     fn intersection_deltas() {
         let test_cases: Vec<(f32, Option<SignedTilePosition>, Option<SignedTilePosition>)> = vec![

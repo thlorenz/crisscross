@@ -108,17 +108,22 @@ impl From<TilePosition> for SignedTilePosition {
 
 impl TryFrom<SignedTilePosition> for TilePosition {
     type Error = String;
-    fn try_from(tp: SignedTilePosition) -> Result<Self, Self::Error> {
-        if tp.x >= 0 && tp.y >= 0 {
-            #[allow(
-                clippy::clippy::cast_sign_loss,
-                clippy::clippy::cast_possible_truncation
-            )]
+    #[allow(
+        clippy::clippy::cast_sign_loss,
+        clippy::cast_precision_loss,
+        clippy::clippy::cast_possible_truncation
+    )]
+    fn try_from(stp: SignedTilePosition) -> Result<Self, Self::Error> {
+        if stp.x >= 0
+            && (stp.x as f64 + f64::from(stp.rel_x)) >= 0.0
+            && stp.y >= 0
+            && (stp.y as f64 + f64::from(stp.rel_y)) >= 0.0
+        {
             Ok(Self {
-                x: tp.x as u32,
-                y: tp.y as u32,
-                rel_x: tp.rel_x,
-                rel_y: tp.rel_y,
+                x: stp.x as u32,
+                y: stp.y as u32,
+                rel_x: stp.rel_x,
+                rel_y: stp.rel_y,
             })
         } else {
             Err("Tile Position is off grid, cannot convert".to_string())

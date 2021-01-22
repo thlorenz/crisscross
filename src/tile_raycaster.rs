@@ -19,6 +19,10 @@ impl TileRaycaster {
         Self { grid }
     }
 
+    pub const fn grid(&self) -> &Grid {
+        &self.grid
+    }
+
     #[must_use]
     pub fn cast_ray<T: Into<AngleRad>>(&self, tp: &TilePosition, angle: T) -> RayIter {
         let intersections = Ray::new(self.grid.clone(), tp.clone(), angle);

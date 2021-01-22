@@ -48,7 +48,11 @@ pub fn rays_from(center: &TilePosition, grid: &Grid, width: f32, angle: &AngleRa
             let len = section_width * f32::from(idx);
             let dx = left_sin * len * fx;
             let dy = left_cos * len * fy;
-            let tp = center_wc.translated(dx, dy).to_tile_position().ok()?;
+            let tp = center_wc
+                .translated(dx, dy)
+                .bounds_checked(grid)?
+                .to_tile_position()
+                .ok()?;
             Some(Ray::new(grid.clone(), tp, angle.clone()))
         })
         .collect()
@@ -60,13 +64,25 @@ mod tests {
 
     use super::*;
 
-    fn rays_for_angle<T: Into<AngleRad>>(
+    fn rays_for_angle(
         center: &TilePosition,
         grid: &Grid,
         width: f32,
-        angle: T,
+        angle: f32,
     ) -> Vec<TilePosition> {
-        let rays = rays_from(center, grid, width, &angle.into());
+        let mut rays = rays_from(center, grid, width, &angle.into());
+        #[cfg(feature = "plot")]
+        {
+            use crate::plot::{plot_rays_origins, PlotType};
+            plot_rays_origins(
+                &grid,
+                center,
+                width,
+                &angle.into(),
+                &mut rays,
+                PlotType::File,
+            );
+        }
         rays.iter().map(|ray| round_tp(&ray.tp)).collect()
     }
 
@@ -219,6 +235,73 @@ mod tests {
                 ((1, 0.500), (1, 0.500)).into(),
                 ((1, 0.933), (1, 0.750)).into(),
                 ((2, 0.366), (2, 0.000)).into()
+            ]
+        );
+    }
+
+    #[test]
+    fn rays_bounds() {
+        let grid = Grid::new(4, 4, 1.0);
+
+        let angle = 0.0;
+        let center = TilePosition::new(0, 0, 0.0, 0.0);
+        let width = grid.tile_size * 0.8;
+        assert_eq!(
+            rays_for_angle(&center, &grid, width, angle),
+            [
+                ((0, 0.000), (0, 0.400)).into(),
+                ((0, 0.000), (0, 0.000)).into(),
+            ]
+        );
+
+        let center = TilePosition::new(1, 1, 0.5, 0.5);
+        let width = grid.tile_size * 10.0;
+        assert_eq!(
+            rays_for_angle(&center, &grid, width, angle),
+            [
+                ((1, 0.500), (3, 0.500)).into(),
+                ((1, 0.500), (3, 0.000)).into(),
+                ((1, 0.500), (2, 0.500)).into(),
+                ((1, 0.500), (2, 0.000)).into(),
+                ((1, 0.500), (1, 0.500)).into(),
+                ((1, 0.500), (1, 0.000)).into(),
+                ((1, 0.500), (0, 0.500)).into(),
+                ((1, 0.500), (0, 0.000)).into()
+            ]
+        );
+
+        let angle = 90_f32.to_radians();
+        let center = TilePosition::new(2, 2, 0.5, 0.5);
+        let width = grid.tile_size * 10.0;
+        assert_eq!(
+            rays_for_angle(&center, &grid, width, angle),
+            [
+                ((0, 0.000), (2, 0.500)).into(),
+                ((0, 0.500), (2, 0.500)).into(),
+                ((1, 0.000), (2, 0.500)).into(),
+                ((1, 0.500), (2, 0.500)).into(),
+                ((2, 0.000), (2, 0.500)).into(),
+                ((2, 0.500), (2, 0.500)).into(),
+                ((3, 0.000), (2, 0.500)).into(),
+                ((3, 0.500), (2, 0.500)).into()
+            ]
+        );
+
+        let angle = 315_f32.to_radians();
+        let center = TilePosition::new(0, 2, 0.5, 0.5);
+        let width = grid.tile_size * 10.0;
+        assert_eq!(
+            rays_for_angle(&center, &grid, width, angle),
+            [
+                ((0, 0.146), (2, 0.854)).into(),
+                ((0, 0.500), (2, 0.500)).into(),
+                ((0, 0.854), (2, 0.146)).into(),
+                ((1, 0.207), (1, 0.793)).into(),
+                ((1, 0.561), (1, 0.439)).into(),
+                ((1, 0.914), (1, 0.086)).into(),
+                ((2, 0.268), (0, 0.732)).into(),
+                ((2, 0.621), (0, 0.379)).into(),
+                ((2, 0.975), (0, 0.025)).into()
             ]
         );
     }

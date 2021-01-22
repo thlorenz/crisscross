@@ -67,10 +67,15 @@ impl WorldCoords {
         SignedTilePosition::new(x, y, rel_x, rel_y)
     }
 
-    #[allow(dead_code)]
-    pub(crate) fn is_inside_grid(&self, grid: &Grid) -> bool {
-        (0.0 < self.x && f64::from(self.x) <= grid.width)
-            && (0.0 < self.y && f64::from(self.y) <= grid.height)
+    pub fn bounds_checked(&self, grid: &Grid) -> Option<&Self> {
+        // TODO(thlorenz): grid dimensions should be same data type as world coords
+        let in_bounds = (0.0 <= self.x && f64::from(self.x) < grid.width)
+            && (0.0 <= self.y && f64::from(self.y) < grid.height);
+        if in_bounds {
+            Some(self)
+        } else {
+            None
+        }
     }
 }
 
