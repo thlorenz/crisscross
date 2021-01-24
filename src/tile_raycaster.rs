@@ -51,6 +51,19 @@ impl TileRaycaster {
         self.cast_ray(tp, angle).take_while(is_valid).last()
     }
 
+    pub fn first_invalid<P, T: Into<AngleRad>>(
+        &self,
+        tp: &TilePosition,
+        angle: T,
+        is_valid: P,
+    ) -> Option<TilePosition>
+    where
+        P: FnMut(&TilePosition) -> bool,
+    {
+        let mut iter = self.cast_ray(tp, angle).skip_while(is_valid);
+        iter.next()
+    }
+
     pub fn beam_last_valid<P, T: Into<AngleRad>>(
         &self,
         beam_center: &TilePosition,

@@ -16,6 +16,37 @@ fn last_valid() {
 }
 
 #[test]
+fn first_invalid() {
+    let tc = TileRaycaster::new(Grid::new(4, 4, 1.0));
+
+    assert_eq!(
+        tc.first_invalid(&((0, 0.0), (0, 0.0)).into(), 45_f32.to_radians(), |tp| {
+            tp.x < 2 && tp.y < 2
+        })
+        .map(round_tp),
+        Some(TilePosition {
+            x: 2,
+            rel_x: 0.000,
+            y: 2,
+            rel_y: 0.000
+        }),
+    );
+
+    assert_eq!(
+        tc.first_invalid(&((0, 0.0), (0, 0.0)).into(), 45_f32.to_radians(), |tp| {
+            tp.x < 1 && tp.y < 1
+        })
+        .map(round_tp),
+        Some(TilePosition {
+            x: 1,
+            rel_x: 0.000,
+            y: 1,
+            rel_y: 0.000
+        }),
+    );
+}
+
+#[test]
 fn beam_last_valid() {
     let tc = TileRaycaster::new(Grid::new(4, 4, 1.0));
     let beam_width = 2.0;
