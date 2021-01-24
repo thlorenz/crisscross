@@ -162,7 +162,7 @@ impl Canvas {
 
         let start = point_from_tile_position(origin);
         let end = point_from_tile_position(tps.last().unwrap());
-        self.draw_line(start, end, BLUE);
+        self.draw_line(start, end, LIGHT_GRAY);
 
         self.draw_tile_positions(tps, 0.005, DARK_GRAY);
     }

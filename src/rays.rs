@@ -1,3 +1,5 @@
+use std::f32::consts::PI;
+
 use crate::{
     angle::{DirectionX, DirectionY},
     position::WorldCoords,
@@ -36,12 +38,18 @@ pub fn rays_from(center: &TilePosition, grid: &Grid, width: f32, angle: &AngleRa
                 DirectionX::Right => -1.0,
             },
             match DirectionY::from(&left_rad) {
-                DirectionY::Up | DirectionY::Parallel => 1.0,
+                DirectionY::Up | DirectionY::Parallel => {
+                    // Honestly I've got no idea why this is necessary :(
+                    if angle.0 > 1.5 * PI {
+                        -1.0
+                    } else {
+                        1.0
+                    }
+                }
                 DirectionY::Down => -1.0,
             },
         )
     };
-
     #[allow(clippy::integer_arithmetic)]
     (-sections..=sections)
         .filter_map(|idx| {
@@ -70,10 +78,11 @@ mod tests {
         width: f32,
         angle: f32,
     ) -> Vec<TilePosition> {
-        let mut rays = rays_from(center, grid, width, &angle.into());
+        let rays = rays_from(center, grid, width, &angle.into());
         #[cfg(feature = "plot")]
         {
             use crate::plot::{plot_rays_origins, PlotType};
+            let mut rays = rays_from(center, grid, width, &angle.into());
             plot_rays_origins(
                 &grid,
                 center,
@@ -86,6 +95,23 @@ mod tests {
         rays.iter().map(|ray| round_tp(&ray.tp)).collect()
     }
 
+    #[test]
+    fn rays_from_width_smaller_than_tile_isolate() {
+        let center = TilePosition::new(1, 1, 0.5, 0.5);
+        let grid = Grid::new(4, 4, 1.0);
+        let width = grid.tile_size * 0.8;
+
+        // Right/Down at 315
+        let angle = 315_f32.to_radians();
+        assert_eq!(
+            rays_for_angle(&center, &grid, width, angle),
+            [
+                ((1, 0.217), (1, 0.217)).into(),
+                ((1, 0.500), (1, 0.500)).into(),
+                ((1, 0.783), (1, 0.783)).into()
+            ]
+        );
+    }
     #[test]
     fn rays_from_width_smaller_than_tile() {
         let center = TilePosition::new(1, 1, 0.5, 0.5);
@@ -174,9 +200,54 @@ mod tests {
         assert_eq!(
             rays_for_angle(&center, &grid, width, angle),
             [
-                ((1, 0.217), (1, 0.783)).into(),
+                ((1, 0.217), (1, 0.217)).into(),
                 ((1, 0.500), (1, 0.500)).into(),
-                ((1, 0.783), (1, 0.217)).into()
+                ((1, 0.783), (1, 0.783)).into()
+            ]
+        );
+
+        //
+        // Checking edge cases regarding the oddity of angle > 1.5 * PI
+        //
+
+        // Left/Down
+        let angle = 269_f32.to_radians();
+        assert_eq!(
+            rays_for_angle(&center, &grid, width, angle),
+            [
+                ((1, 0.900), (1, 0.493)).into(),
+                ((1, 0.500), (1, 0.500)).into(),
+                ((1, 0.100), (1, 0.507)).into()
+            ]
+        );
+
+        let angle = 271_f32.to_radians();
+        assert_eq!(
+            rays_for_angle(&center, &grid, width, angle),
+            [
+                ((1, 0.100), (1, 0.493)).into(),
+                ((1, 0.500), (1, 0.500)).into(),
+                ((1, 0.900), (1, 0.507)).into()
+            ]
+        );
+
+        let angle = 359_f32.to_radians();
+        assert_eq!(
+            rays_for_angle(&center, &grid, width, angle),
+            [
+                ((1, 0.493), (1, 0.100)).into(),
+                ((1, 0.500), (1, 0.500)).into(),
+                ((1, 0.507), (1, 0.900)).into()
+            ]
+        );
+
+        let angle = 361_f32.to_radians();
+        assert_eq!(
+            rays_for_angle(&center, &grid, width, angle),
+            [
+                ((1, 0.507), (1, 0.100)).into(),
+                ((1, 0.500), (1, 0.500)).into(),
+                ((1, 0.493), (1, 0.900)).into()
             ]
         );
     }
@@ -293,15 +364,12 @@ mod tests {
         assert_eq!(
             rays_for_angle(&center, &grid, width, angle),
             [
-                ((0, 0.146), (2, 0.854)).into(),
+                ((0, 0.146), (2, 0.146)).into(),
                 ((0, 0.500), (2, 0.500)).into(),
-                ((0, 0.854), (2, 0.146)).into(),
-                ((1, 0.207), (1, 0.793)).into(),
-                ((1, 0.561), (1, 0.439)).into(),
-                ((1, 0.914), (1, 0.086)).into(),
-                ((2, 0.268), (0, 0.732)).into(),
-                ((2, 0.621), (0, 0.379)).into(),
-                ((2, 0.975), (0, 0.025)).into()
+                ((0, 0.854), (2, 0.854)).into(),
+                ((1, 0.207), (3, 0.207)).into(),
+                ((1, 0.561), (3, 0.561)).into(),
+                ((1, 0.914), (3, 0.914)).into()
             ]
         );
     }
