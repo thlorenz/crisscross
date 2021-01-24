@@ -1,7 +1,15 @@
+use std::fmt;
+
 use crate::{ray::Ray, ray_iter::RayIter, TilePosition};
 
-#[derive(Debug, PartialEq)]
+#[derive(PartialEq)]
 pub struct BeamIntersect(pub usize, pub TilePosition);
+
+impl fmt::Debug for BeamIntersect {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "BeamIntersect({}, {:?})", self.0, self.1)
+    }
+}
 
 pub struct Beam {
     rays: Vec<RayIter>,

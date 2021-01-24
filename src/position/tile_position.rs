@@ -164,7 +164,7 @@ impl fmt::Debug for TilePosition {
         } else {
             write!(
                 f,
-                "TilePosition x: {}, rel_x: {:.*}), y: {}, rel_y: {:.*}",
+                "TilePosition {{ x: {}, rel_x: {:.*}, y: {}, rel_y: {:.*} }}",
                 self.x, p, self.rel_x, self.y, p, self.rel_y
             )
         }

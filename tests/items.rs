@@ -1,6 +1,6 @@
 mod common;
-use common::{round_cutoff, round_tp};
-use crisscross::{Crossing, Grid, TilePosition, TileRaycaster};
+use common::{round_beam_intersect, round_cutoff, round_tp};
+use crisscross::{BeamIntersect, Crossing, Grid, TilePosition, TileRaycaster};
 
 #[test]
 fn last_valid() {
@@ -11,7 +11,24 @@ fn last_valid() {
             tp.y < 2
         })
         .map(round_tp),
-        Some(((3, 0.000), (1, 0.732)).into(),),
+        Some(((3, 0.000), (1, 0.732)).into()),
+    );
+}
+
+#[test]
+fn beam_last_valid() {
+    let tc = TileRaycaster::new(Grid::new(4, 4, 1.0));
+    let beam_width = 2.0;
+
+    assert_eq!(
+        tc.beam_last_valid(
+            &((0, 0.0), (0, 0.0)).into(),
+            beam_width,
+            30_f32.to_radians(),
+            |BeamIntersect(_, tp)| { tp.y < 2 }
+        )
+        .map(round_beam_intersect),
+        Some(BeamIntersect(0, ((3, 0.000), (1, 0.732)).into()))
     );
 }
 

@@ -1,6 +1,6 @@
 use crate::{
     beam::Beam, beam_iter::BeamIter, grid::Grid, position::TilePosition, ray::Ray,
-    ray_iter::RayIter, rays::rays_from, AngleRad,
+    ray_iter::RayIter, rays::rays_from, AngleRad, BeamIntersect,
 };
 
 #[derive(Debug, Default, PartialEq)]
@@ -49,6 +49,21 @@ impl TileRaycaster {
         P: FnMut(&TilePosition) -> bool,
     {
         self.cast_ray(tp, angle).take_while(is_valid).last()
+    }
+
+    pub fn beam_last_valid<P, T: Into<AngleRad>>(
+        &self,
+        beam_center: &TilePosition,
+        beam_width: f32,
+        angle: T,
+        is_valid: P,
+    ) -> Option<BeamIntersect>
+    where
+        P: FnMut(&BeamIntersect) -> bool,
+    {
+        self.cast_beam(beam_center, beam_width, angle)
+            .take_while(is_valid)
+            .last()
     }
 
     pub fn crossing<P, T: Into<AngleRad>>(

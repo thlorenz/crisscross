@@ -26,8 +26,10 @@ pub const GRAY: Color = Rgb([0x80, 0x80, 0x80]);
 pub const DARK_GRAY: Color = Rgb([0x20, 0x20, 0x20]);
 pub const BLACK: Color = Rgb([0x00, 0x00, 0x00]);
 
-pub const BLUE: Color = Rgb([0x00, 0x00, 0xff]);
+pub const RED: Color = Rgb([0xff, 0x00, 0x00]);
 pub const GREEN: Color = Rgb([0x00, 0xff, 0x00]);
+pub const BLUE: Color = Rgb([0x00, 0x00, 0xff]);
+pub const DARK_GOLDENROD: Color = Rgb([0x8B, 0x65, 0x08]);
 
 pub struct Canvas {
     grid: Grid,
@@ -169,6 +171,10 @@ impl Canvas {
 
     pub fn plot_tile_position(&mut self, tp: &TilePosition, color: Color) {
         self.draw_tile_position(tp, 0.005, color)
+    }
+
+    pub fn plot_tile_position_bold(&mut self, tp: &TilePosition, color: Color) {
+        self.draw_tile_position(tp, 0.01, color);
     }
 
     pub fn plot_tile_positions(&mut self, tps: &Vec<&TilePosition>) {
