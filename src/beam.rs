@@ -80,8 +80,8 @@ impl Beam {
                 (idx, tp.as_ref().unwrap(), orig)
             })
             .min_by(|(_, tp1, orig1), (_, tp2, orig2)| {
-                let dist1 = orig1.distance(*tp1, self.tile_size);
-                let dist2 = orig2.distance(*tp2, self.tile_size);
+                let dist1 = orig1.distance_global(*tp1, self.tile_size);
+                let dist2 = orig2.distance_global(*tp2, self.tile_size);
                 dist1.partial_cmp(&dist2).unwrap()
             })?;
         Some(BeamIntersect(idx, tp.clone()))

@@ -37,8 +37,8 @@ pub fn plot_ray(
     plot_type: PlotType,
 ) -> Canvas {
     tps.sort_by(|tp1, tp2| {
-        let dist1 = origin.distance(*tp1, grid.tile_size);
-        let dist2 = origin.distance(*tp2, grid.tile_size);
+        let dist1 = origin.distance_global(*tp1, grid.tile_size);
+        let dist2 = origin.distance_global(*tp2, grid.tile_size);
         dist1.partial_cmp(&dist2).unwrap()
     });
 

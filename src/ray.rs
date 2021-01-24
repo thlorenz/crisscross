@@ -194,8 +194,8 @@ impl Ray {
             (None, Some(_)) => Some(Axis::Y),
             (Some(_), None) => Some(Axis::X),
             (Some(ref tpx), Some(ref tpy)) => {
-                let dx = self.tp.distance(tpx, self.grid.tile_size);
-                let dy = self.tp.distance(tpy, self.grid.tile_size);
+                let dx = self.tp.distance_global(tpx, self.grid.tile_size);
+                let dy = self.tp.distance_global(tpy, self.grid.tile_size);
                 if dx < dy {
                     Some(Axis::X)
                 } else {

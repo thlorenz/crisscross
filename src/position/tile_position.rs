@@ -52,12 +52,20 @@ impl TilePosition {
         }
     }
 
-    pub fn distance<'a, T>(&self, other: T, tile_size: f32) -> f32
+    pub fn distance_global<'a, T>(&self, other: T, tile_size: f32) -> f32
     where
         T: Into<&'a Self>,
     {
         self.to_world_coords(tile_size)
             .distance(&other.into().to_world_coords(tile_size))
+    }
+
+    pub fn distance_relative<'a, T>(&self, other: T) -> f32
+    where
+        T: Into<&'a Self>,
+    {
+        let (dx, dy) = self.delta_to(other.into());
+        dx.hypot(dy)
     }
 
     pub fn is_same_tile<'a, T>(&self, other: T) -> bool
@@ -66,6 +74,17 @@ impl TilePosition {
     {
         let other = other.into();
         self.x == other.x && self.y == other.y
+    }
+
+    fn axes(&self) -> (f32, f32) {
+        #[allow(clippy::cast_precision_loss)]
+        (self.x as f32 + self.rel_x, self.y as f32 + self.rel_y)
+    }
+
+    fn delta_to(&self, target: &Self) -> (f32, f32) {
+        let (x1, y1) = self.axes();
+        let (x2, y2) = target.axes();
+        (x2 - x1, y2 - y1)
     }
 
     fn to_world_coords(&self, tile_size: f32) -> WorldCoords {
@@ -249,6 +268,6 @@ mod tests {
     fn distance() {
         let tp1: TilePosition = ((1, 0.0), (3, 0.3)).into();
         let tp2: TilePosition = ((4, 0.1), (8, 0.8)).into();
-        assert_eq!(round(tp1.distance(&tp2, 1.0), 3), 6.313);
+        assert_eq!(round(tp1.distance_global(&tp2, 1.0), 3), 6.313);
     }
 }
